@@ -1,0 +1,14 @@
+.dashboard-boxes {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 350px;
+  height: 144px;
+  /* border: 1px solid black; */
+  background-color: #695cfe;
+  color: white;
+  border-radius: 30px;
+  margin-bottom: 1.2rem;
+  box-shadow: 5px -6px 10px;
+  cursor: pointer;
+}

@@ -1,0 +1,25 @@
+.bg-text {
+  /* background-color: rgb(0, 0, 0); Fallback color
+  background-color: rgba(0, 0, 0, 0.4); Black w/opacity/see-through */
+  background-color: #695cfe;
+  filter: opacity(0.8);
+  /* backdrop-filter: 10px; */
+  /* font-weight: bold; */
+  color: #fff;
+  /* border: 3px solid #695cfe; */
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  /* width: 80%; */
+  padding: 5px;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* .profile-image {
+  filter: blur(1px);
+  -webkit-filter: blur(1px);
+} */

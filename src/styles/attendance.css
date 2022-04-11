@@ -1,0 +1,58 @@
+.subject-tab {
+  overflow-x: auto;
+}
+
+.subject-tab::-webkit-scrollbar {
+  display: none;
+}
+
+.react-calendar__tile {
+  margin-bottom: 5px !important;
+  /* pointer-events: none !important; */
+  color: black;
+  /* margin-right: 2px !important; */
+}
+
+.react-calendar__month-view__days__day {
+  pointer-events: none !important;
+}
+
+.react-calendar__month-view__days__day--neighboringMonth {
+  color: #757575 !important;
+}
+
+.react-calendar {
+  width: 660px;
+  box-shadow: 4px -6px 27px #bdbbbb;
+}
+
+.nav-link {
+  font-size: 20px;
+  font-weight: bold;
+  border-right: 1px solid rgb(21, 140, 186);
+  border-left: 1px solid rgb(21, 140, 186);
+  margin-top: 10px;
+  margin-bottom: 10px;
+  color: rgb(105, 92, 254);
+}
+
+.nav-item a.active {
+  background-color: #117095;
+  color: #fff;
+}
+
+/* .subject-tab .nav-item a:hover {
+  color: #eee;
+} */
+
+.tile-green {
+  color: white;
+  background-color: rgb(97, 243, 97);
+  border-radius: 50%;
+}
+
+.tile-red {
+  color: white;
+  background-color: rgb(253, 64, 64);
+  border-radius: 50%;
+}

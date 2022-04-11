@@ -1,0 +1,28 @@
+.profile-card {
+  width: 20rem;
+  /* border: 1px solid; */
+  background-color: #fff;
+}
+
+.profile-card-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.profile-name {
+  font-size: 20px;
+  color: #695cfe;
+  font-weight: bolder;
+  margin-top: 15px;
+}
+
+.proflie-post {
+  font-size: 15px;
+}
+
+.profile-bio {
+  font-size: 17px;
+  color: black;
+}
