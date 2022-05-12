@@ -41,7 +41,6 @@ function Attendance1() {
     // set the student detail of the individual student attendance
 
     // for individual student attendance, the selected date
-    const [selectedIndividualDate, setSelectedIndividualDate] = useState(new Date().getDate())
 
     const daysArray = []
 
@@ -154,6 +153,7 @@ function Attendance1() {
 
     function IndividualStudentAttendanceModal(props) {
 
+        const [selectedIndividualDate, setSelectedIndividualDate] = useState(new Date().getDate())
 
         const changeIndividualStudentAttendance = () => {
 
@@ -230,14 +230,14 @@ function Attendance1() {
                                     name='attend'
                                     className='radio-button-present'
                                     value="present"
-                                    defaultChecked={userProfileInfo.attendance[activeClass][selectIndividualStudent?.id][months[activeMonth]][selectedIndividualDate]}
+                                    checked={userProfileInfo.attendance[activeClass][selectIndividualStudent?.id][months[activeMonth]][selectedIndividualDate]}
                                 />&nbsp; <span className='fw-bolder'>Present</span> &nbsp; &nbsp;&nbsp;&nbsp;
                                 <input
                                     type="radio"
                                     name='attend'
                                     value="absent"
                                     className='radio-button-absent'
-                                    defaultChecked={!userProfileInfo.attendance[activeClass][selectIndividualStudent?.id][months[activeMonth]][selectedIndividualDate]}
+                                    checked={!userProfileInfo.attendance[activeClass][selectIndividualStudent?.id][months[activeMonth]][selectedIndividualDate]}
                                 />&nbsp; <span className='fw-bolder'>Absent</span>
 
                             </div>
@@ -400,7 +400,8 @@ function Attendance1() {
                                     show={modalShow}
                                     onHide={() => {
                                         setModalShow(false)
-                                        setSelectedIndividualDate(new Date().getDate())
+                                        setSelectIndividualStudent({})
+                                        // setSelectedIndividualDate(new Date().getDate())
                                     }}
                                 />
                                 {/* <div>{activeClass}</div> */}

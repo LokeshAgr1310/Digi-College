@@ -26,6 +26,7 @@ import {
 import { query, doc, collection, where, getDocs, addDoc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { db } from '../firebase-config'
+import { async } from '@firebase/util';
 
 // useful variables
 const usersCollectionRef = collection(db, "users")
@@ -33,6 +34,7 @@ const profileCollectionRef = collection(db, "profile")
 const teacherCollectionRef = collection(db, "teachers")
 const teacherProfileCollectionRef = collection(db, "teachers_profile")
 const groupCollectionRef = collection(db, "Group")
+const librarianProfileRef = collection(db, 'librarian_profile')
 
 // const [userInfo, setUserInfo] = useState([])
 // const [profileInfo, setProfileInfo] = useState([])
@@ -103,12 +105,12 @@ export const login = (id, email, password, isTeacher) => async (dispatch) => {
                 })
             } else {
 
-                console.log("ID: ", userInfo[0].id)
-                console.log("CORRECT: ", userInfo[0].id === 'xDHarsREINkDOBSsM0JF')
+                // console.log("ID: ", userInfo[0].id)
+                // console.log("CORRECT: ", userInfo[0].id === 'xDHarsREINkDOBSsM0JF')
 
                 q = query(teacherProfileCollectionRef, where('t_id', "==", userInfo[0].id))
                 const profileData = await getDocs(q)
-                console.log('PROFILE ID: ', profileData)
+                // console.log('PROFILE ID: ', profileData)
 
                 // create the profileInfo object
                 profileInfo = profileData.docs.map((doc) => ({
@@ -239,6 +241,7 @@ export const register = (password) => async (dispatch) => {
 
             var subject = {}
             let assignment = {}
+            let quiz = {}
             for (var i = 0; i < subjects.length; i++) {
                 subject[subjects[i]] = {
                     "attendence": {
@@ -267,6 +270,7 @@ export const register = (password) => async (dispatch) => {
                     }
                 }
                 assignment[subjects[i]] = []
+                quiz[subject[i]] = []
             }
 
             var semesterResults = {}
@@ -297,6 +301,7 @@ export const register = (password) => async (dispatch) => {
                 "Educational-Details": eduDetails,
                 "image_url": "",
                 "Assignment": assignment,
+                "Quiz": quiz
             })
 
 
@@ -412,6 +417,9 @@ export const register = (password) => async (dispatch) => {
 
                 userInfo[0].role = 'student'
 
+                // const assignmentData = await getDoc(doc(db, 'classes', courseId))
+                // localStorage.setItem('assignmentData', JSON.stringify(assignmentData))
+
                 localStorage.setItem('userInfo', JSON.stringify(userInfo[0]))
                 localStorage.setItem('userProfileInfo', JSON.stringify(profileInfo[0]))
                 // localStorage.setItem('profileInfo', )
@@ -448,6 +456,7 @@ export const logout = () => async (dispatch) => {
     localStorage.removeItem('userInfo')
     localStorage.removeItem('userProfileInfo')
     localStorage.removeItem('studentDetails')
+    localStorage.removeItem('stdAssignmentDetails')
     dispatch({
         type: USER_LOGOUT
     })
@@ -714,5 +723,49 @@ export const getSubjects = () => async (getState) => {
 
 //     window.location = url
 // }
+
+export const administrativeLoginAction = (username, email, password, isLibrarian) => async (dispatch, getState) => {
+    try {
+
+        dispatch({ type: USER_LOGIN_REQUEST })
+
+        let q = query(librarianProfileRef, where('username', "==", username), where('email', '==', email), where('password', '==', password))
+
+        // console.log("Query: ", q)
+
+        // gettting the data with the specified query
+        const data = await getDocs(q);
+        let librarianProfileInfo = []
+        librarianProfileInfo = data.docs.map((doc) => ({
+            ...doc.data(),
+            id: doc.id,
+
+        }))
+
+        if (librarianProfileInfo.length === 0) {
+
+            dispatch({
+                type: USER_LOGIN_FAIL,
+                error: 'Incorrect Login Credentials'
+            })
+        } else {
+
+            librarianProfileInfo[0].role = 'librarian'
+            dispatch({
+                type: USER_LOGIN_SUCCESS,
+                payload: librarianProfileInfo[0]
+            })
+
+            localStorage.setItem('userInfo', JSON.stringify(librarianProfileInfo[0]))
+        }
+
+    } catch (error) {
+        console.log('Error', error)
+        dispatch({
+            type: USER_LOGIN_FAIL,
+            payload: error
+        })
+    }
+}
 
 

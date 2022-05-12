@@ -40,6 +40,10 @@ function Home() {
     console.log('ATTENDED: ', attended)
 
     const attendancePercent = (attended / totalLectures) * 100
+
+    const currTime = new Date().getTime()
+    console.log('Current Time', currTime)
+
     return (
         <div className='text'>
             <h2>DashBoard</h2>
@@ -73,8 +77,17 @@ function Home() {
                         </div>
                     </Col>
                     <Col>
-                        <div className='dashboard-boxes'>
-                            Lectures
+                        <div className='dashboard-boxes d-flex flex-column align-items-between'>
+                            <h3>Lecture</h3>
+                            <h5 style={{
+                                fontSize: '25px',
+                                // textDecoration: 'underline'
+                            }}>
+                                Next Lecture -
+                                <span style={{
+                                    fontSize: '20px'
+                                }}> </span>
+                            </h5>
                         </div>
                     </Col>
                 </Row>

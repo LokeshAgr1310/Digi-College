@@ -144,7 +144,7 @@ function Navigation() {
                 <header>
                     <div className="image-text">
                         <span className="image">
-                            <Link to='/home'>
+                            <Link to={`${userInfo?.role === 'librarian' ? '/librarian' : userInfo?.role === 'student' ? '/home' : '/home1'}`}>
                                 <img src="Images/logo.png" alt="" />
                             </Link>
                         </span>
@@ -165,88 +165,104 @@ function Navigation() {
                             <input type="text" placeholder="Search..." />
                         </li>
 
-                        <ul className="menu-links" style={{
-                            padding: '0px'
-                        }}>
-                            <li className="nav-links">
-                                <Link to={userInfo?.role === 'teacher' ? '/profile1' : '/profile'}>
-                                    <i className='bx bx-user-circle icon'></i>
-                                    <span className="text nav-text">Profile</span>
+                        {
+                            userInfo?.role === 'teacher' || userInfo?.role === 'student'
+                                ? (
 
-                                </Link>
-                                {/* <span className='dropdown-arrow'>
-                                    <OverlayTrigger trigger="click" rootClose placement="right" overlay={profilePopover}>
-                                        <i className='bx bxs-right-arrow' style={{
-                                            cursor: 'pointer',
-                                        }}></i>
-                                    </OverlayTrigger>
-                                </span> */}
-                            </li>
+                                    <ul className="menu-links" style={{
+                                        padding: '0px'
+                                    }}>
+                                        <li className="nav-links">
+                                            <Link to={userInfo?.role === 'teacher' ? '/profile1' : '/profile'}>
+                                                <i className='bx bx-user-circle icon'></i>
+                                                <span className="text nav-text">Profile</span>
 
-                            <li className="nav-links">
-                                <Link to="/academic">
-                                    <i className='bx bxs-graduation icon' ></i>
-                                    <span className="text nav-text">Academic</span>
-                                </Link>
-                                <span className='dropdown-arrow'>
-                                    <OverlayTrigger trigger="click" rootClose placement="right" overlay={academicPopover}>
-                                        <i className='bx bxs-right-arrow' style={{
-                                            cursor: 'pointer',
-                                        }}></i>
-                                    </OverlayTrigger>
-                                </span>
-                            </li>
+                                            </Link>
+                                        </li>
 
-                            <li className="nav-links">
-                                <Link to="/classroom">
-                                    <i className='bx bx-bell icon'></i>
-                                    <span className="text nav-text">Classroom</span>
-                                </Link>
-                                <span className='dropdown-arrow'>
-                                    <OverlayTrigger trigger="click" rootClose placement="right" overlay={classroomPopover}>
-                                        <i className='bx bxs-right-arrow' style={{
-                                            cursor: 'pointer',
-                                        }}></i>
-                                    </OverlayTrigger>
-                                </span>
-                            </li>
+                                        <li className="nav-links">
+                                            <Link to="/academic">
+                                                <i className='bx bxs-graduation icon' ></i>
+                                                <span className="text nav-text">Academic</span>
+                                            </Link>
+                                            <span className='dropdown-arrow'>
+                                                <OverlayTrigger trigger="click" rootClose placement="right" overlay={academicPopover}>
+                                                    <i className='bx bxs-right-arrow' style={{
+                                                        cursor: 'pointer',
+                                                    }}></i>
+                                                </OverlayTrigger>
+                                            </span>
+                                        </li>
 
-                            <li className="nav-links">
-                                <Link to="/library">
-                                    <i className='bx bx-library icon'></i>
-                                    <span className="text nav-text">Library</span>
-                                </Link>
-                                <span className='dropdown-arrow'>
-                                    <OverlayTrigger trigger="click" rootClose placement="right" overlay={libraryPopover}>
-                                        <i className='bx bxs-right-arrow' style={{
-                                            cursor: 'pointer',
-                                        }}></i>
-                                    </OverlayTrigger>
-                                </span>
-                            </li>
+                                        <li className="nav-links">
+                                            <Link to="/classroom">
+                                                <i className='bx bx-bell icon'></i>
+                                                <span className="text nav-text">Classroom</span>
+                                            </Link>
+                                            <span className='dropdown-arrow'>
+                                                <OverlayTrigger trigger="click" rootClose placement="right" overlay={classroomPopover}>
+                                                    <i className='bx bxs-right-arrow' style={{
+                                                        cursor: 'pointer',
+                                                    }}></i>
+                                                </OverlayTrigger>
+                                            </span>
+                                        </li>
 
-                            <li className="nav-links">
-                                <Link to="/event">
-                                    <i className='bx bx-calendar-event icon'></i>
-                                    <span className="text nav-text">Event</span>
-                                </Link>
-                                <span className='dropdown-arrow'>
-                                    <OverlayTrigger trigger="click" rootClose placement="right" overlay={eventPopover}>
-                                        <i className='bx bxs-right-arrow' style={{
-                                            cursor: 'pointer',
-                                        }}></i>
-                                    </OverlayTrigger>
-                                </span>
-                            </li>
+                                        <li className="nav-links">
+                                            <Link to="/library">
+                                                <i className='bx bx-library icon'></i>
+                                                <span className="text nav-text">Library</span>
+                                            </Link>
+                                        </li>
 
-                            <li className="nav-links">
-                                <Link to="/other">
-                                    <i className='bx bx-wallet icon' ></i>
-                                    <span className="text nav-text">Other</span>
-                                </Link>
-                            </li>
+                                        <li className="nav-links">
+                                            <Link to="/event">
+                                                <i className='bx bx-calendar-event icon'></i>
+                                                <span className="text nav-text">Event</span>
+                                            </Link>
+                                            <span className='dropdown-arrow'>
+                                                <OverlayTrigger trigger="click" rootClose placement="right" overlay={eventPopover}>
+                                                    <i className='bx bxs-right-arrow' style={{
+                                                        cursor: 'pointer',
+                                                    }}></i>
+                                                </OverlayTrigger>
+                                            </span>
+                                        </li>
 
-                        </ul>
+                                        <li className="nav-links">
+                                            <Link to="/other">
+                                                <i className='bx bx-wallet icon' ></i>
+                                                <span className="text nav-text">Other</span>
+                                            </Link>
+                                        </li>
+
+                                    </ul>
+                                )
+                                : (
+                                    <ul className="menu-links" style={{
+                                        padding: '0px'
+                                    }}>
+                                        <li className="nav-links">
+                                            <Link to="/librarian-books">
+                                                <i className="fa-solid fa-book icon"></i>
+                                                <span className="text nav-text">Books</span>
+                                            </Link>
+                                        </li>
+                                        <li className="nav-links">
+                                            <Link to="/librarian-records">
+                                                <i className="fa-solid fa-chalkboard icon"></i>
+                                                <span className="text nav-text">Records</span>
+                                            </Link>
+                                        </li>
+                                        <li className="nav-links">
+                                            <Link to="/requests">
+                                                <i className="fa-solid fa-bell icon"></i>
+                                                <span className="text nav-text">Requests</span>
+                                            </Link>
+                                        </li>
+                                    </ul>
+                                )
+                        }
                     </div>
 
                     <div className="bottom-content">

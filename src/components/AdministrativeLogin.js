@@ -1,21 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, Button, Image } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux'
-import { login } from '../actions/userActions'
+import { administrativeLoginAction } from '../actions/userActions'
 import { Link, useNavigate } from 'react-router-dom';
 
 import Loader from './Loading'
 import Message from './Message'
 
 
-// TODO: change the placeholder color
-function Login() {
+function AdministrativeLogin() {
 
     const [email, setEmail] = useState('')
-    const [regn, setRegn] = useState('')
+    // const [regn, setRegn] = useState('')
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
-    const [isTeacher, setIsTeacher] = useState(false)
+    const [isLibrarian, setIsLibrarian] = useState(false)
 
     const dispatch = useDispatch()
     const userLogin = useSelector(state => state.userLogin)
@@ -26,10 +25,9 @@ function Login() {
         e.preventDefault();
         console.log('Form submitted...')
 
-        dispatch(login(isTeacher ? username : regn, email, password, isTeacher))
+        dispatch(administrativeLoginAction(username, email, password, isLibrarian))
         // console.log('Logged in...')
         setEmail('')
-        setRegn('')
         setPassword('')
         setUsername('')
         // history.push('/')
@@ -42,18 +40,10 @@ function Login() {
     useEffect(() => {
 
         if (userInfo) {
-            if (userInfo.role === 'teacher') {
-                window.location = '/home1'
-            } else if (userInfo.role === 'librarian') {
-                window.location = '/librarian'
-            } else {
-                window.location = '/home'
-            }
+            navigate('/librarian')
         }
 
     }, [userInfo])
-
-    // console.log("Teacher: ", isTeacher);
 
     return (
         <div>
@@ -75,18 +65,18 @@ function Login() {
                                 {/* <h1 className='fw-bold'>Login As...</h1> */}
                                 <div className='d-flex justify-content-between align-items-center'>
                                     <Button variant='outline-light' className="d-flex flex-column justify-content-center align-items-center mt-2"
-                                        active={!isTeacher}
-                                        onClick={() => setIsTeacher(false)}
+                                        active={!isLibrarian}
+                                        onClick={() => setIsLibrarian(false)}
                                     >
-                                        <Image src="Images/student-avatar.jpg" roundedCircle height="60px" width="60px" />
-                                        <span className='text-secondary'>Student</span>
+                                        <Image src="Images/library-incharge-avatar.jpg" roundedCircle height="60px" width="60px" />
+                                        <span className='text-secondary'>Librarian</span>
                                     </Button>
                                     <Button variant='outline-light d-flex flex-column justify-content-center align-items-center'
-                                        onClick={() => setIsTeacher(true)}
-                                        active={isTeacher}
+                                        onClick={() => setIsLibrarian(true)}
+                                        active={isLibrarian}
                                     >
                                         <Image src="Images/teacher-avatar.png" roundedCircle height="60px" width="60px" />
-                                        <span className='text-secondary'>Teacher</span>
+                                        <span className='text-secondary'>Office</span>
                                     </Button>
                                 </div>
 
@@ -94,13 +84,13 @@ function Login() {
                                 {error && <Message variant="danger">{error}</Message>}
 
                                 <Form className='py-3' onSubmit={submitHandler}>
-                                    <Form.Group className="mb-3" controlId={`${isTeacher ? 'username' : 'regn'}`}>
+                                    <Form.Group className="mb-3" controlId="username">
                                         <Form.Control
                                             type="text"
-                                            placeholder={`enter your ${isTeacher ? 'username' : 'regn no.'}`}
+                                            placeholder={`enter your username`}
                                             required
-                                            value={isTeacher ? username : regn}
-                                            onChange={(e) => isTeacher ? setUsername(e.target.value) : setRegn(e.target.value)}
+                                            value={username}
+                                            onChange={(e) => setUsername(e.target.value)}
                                         />
                                     </Form.Group>
                                     <Form.Group className="mb-3" controlId='email'>
@@ -125,16 +115,6 @@ function Login() {
                                         <Button variant='outline-primary' type='submit'>Login</Button>
                                     </div>
                                 </Form>
-                                {
-                                    !isTeacher && (
-                                        <div>
-                                            <p>
-                                                New User ?
-                                                <Link to='/register/step=1' className='fw-bolder'> Register!</Link>
-                                            </p>
-                                        </div>
-                                    )
-                                }
                             </div>
                         </Container>
                         <div className='d-flex justify-content-end px-5 align-items-center'>
@@ -152,7 +132,7 @@ function Login() {
                     </>
                 )}
         </div>
-    );
+    )
 }
 
-export default Login;
+export default AdministrativeLogin

@@ -1,28 +1,27 @@
 import React, { useEffect, useState } from 'react'
 import { Form, Button } from 'react-bootstrap'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot } from 'firebase/firestore'
 import { db } from '../firebase-config'
 import { useDispatch, useSelector } from 'react-redux'
-import { uploadStudentAssignment } from '../actions/studentActions'
+import { uploadStudentAssignment, cancelAssignmentSubmissionAction } from '../actions/studentActions'
 import Loader from './Loading'
+
+// Checking some bugs related to refresh
 
 function StudentAssignment({ std }) {
 
-    const { userProfileInfo } = useSelector(state => state.userLogin)
+    const { userProfileInfo, loading: userProfileInfoLoading } = useSelector(state => state.userLogin)
     const { loading } = useSelector(state => state.uploadAssignment)
+
 
     const [assignmentData, setAssignmentData] = useState([])
     const [assignmentFile, setAssignmentFile] = useState([])
 
+    // console.log('UserprofileInfo', userProfileInfo)
+
+    const courseId = `${userProfileInfo.course}-${userProfileInfo.semester}`
+
     const dispatch = useDispatch()
-
-    const getAssignmentDetails = async () => {
-        const courseId = `${userProfileInfo.course}-${userProfileInfo.semester}`
-        console.log('courseId: ', courseId)
-
-        const assignData = await getDoc(doc(db, "classes", courseId))
-        setAssignmentData(assignData.data().class[std]['Assignment'].reverse())
-    }
 
     // console.log('Date: ', new Date(assignmentData.lastDate))
     console.log('data: ', assignmentData)
@@ -37,6 +36,22 @@ function StudentAssignment({ std }) {
         }
     }
 
+    const getAssignmentDetails = async () => {
+        const assignData = await getDoc(doc(db, 'classes', courseId))
+        setAssignmentData(assignData.data().class[std]['Assignment'].reverse())
+
+    }
+
+    const cancelAssignmentSubmission = (assignmentNumber) => {
+        if (window.confirm(`Are you want to cancel your Assignment-${assignmentNumber} submission?`)) {
+            dispatch(cancelAssignmentSubmissionAction(std, assignmentNumber))
+        } else {
+            console.log('Cancelled!!')
+        }
+    }
+
+    // console.log('COndition: ', assignmentData.length === userProfileInfo.Assignment[std].length)
+
     useEffect(() => {
         getAssignmentDetails()
     }, [])
@@ -44,10 +59,11 @@ function StudentAssignment({ std }) {
     return (
         <div className='d-flex flex-column mt-4'>
             {
-                assignmentData.length !== 0
-                    ? loading
-                        ? <Loader />
-                        :
+                loading || userProfileInfoLoading
+                    ? <Loader />
+                    :
+                    assignmentData.length !== 0 && assignmentData.length === userProfileInfo.Assignment[std].length
+                        ?
                         (
 
                             assignmentData.map((assignment, index) => (
@@ -78,7 +94,7 @@ function StudentAssignment({ std }) {
                                         }}>Topic: {assignment.topic}</h5>
                                     </div>
                                     <div className='middle'>
-                                        {userProfileInfo['Assignment'][std][assignmentData.length - index - 1].status === 'Not Submitted' &&
+                                        {userProfileInfo['Assignment'][std][assignmentData.length - index - 1].status === 'Not-Submitted' &&
                                             (
                                                 <Form
                                                     onSubmit={(e) => uploadAssignmentHandler(e, assignmentData.length - index - 1)}
@@ -124,18 +140,31 @@ function StudentAssignment({ std }) {
                                             {
                                                 (userProfileInfo['Assignment'][std][assignmentData.length - index - 1].status === 'Approved' || userProfileInfo['Assignment'][std][assignmentData.length - index - 1].status === 'Submitted')
                                                 &&
-                                                <div>
-                                                    <span>Your Submission: </span>
-                                                    <a href={userProfileInfo['Assignment'][std][assignmentData.length - index - 1]['assignment-pdf-file']}
-                                                        style={{
-                                                            fontSize: '15px',
-                                                            textDecoration: 'none'
-                                                        }}
-                                                        target="_blank"
-                                                    >
-                                                        (Pdf Link)
-                                                    </a>
-                                                </div>
+                                                <>
+                                                    <div>
+                                                        <span>Your Submission: </span>
+                                                        <a href={userProfileInfo['Assignment'][std][assignmentData.length - index - 1]['assignment-pdf-file']}
+                                                            style={{
+                                                                fontSize: '15px',
+                                                                textDecoration: 'none'
+                                                            }}
+                                                            target="_blank"
+                                                        >
+                                                            (Pdf Link)
+                                                        </a>
+                                                    </div>
+                                                    {userProfileInfo['Assignment'][std][assignmentData.length - index - 1].status === 'Submitted' &&
+                                                        <Button
+                                                            variant='danger'
+                                                            size='sm'
+                                                            style={{
+                                                                fontSize: '12px',
+                                                                marginTop: '10px'
+                                                            }}
+                                                            onClick={() => cancelAssignmentSubmission(assignmentData.length - index)}
+                                                        >Cancel Submission</Button>
+                                                    }
+                                                </>
                                             }
                                         </h5>
                                     </div>
@@ -173,10 +202,10 @@ function StudentAssignment({ std }) {
                                 </div >
                             ))
                         )
-                    :
-                    (
-                        <p>No assignment available...</p>
-                    )
+                        :
+                        (
+                            <p>Fetch new assignment</p>
+                        )
             }
 
         </div >
