@@ -89,17 +89,13 @@ export const createAssignmentAction = (courseId, subject, assignmentNumber, assi
         const fileRef = ref(storage, `Assignment/teacher/${courseId}/${subject}/${assignmentNumber + 1}/`);
 
         const uploadFile = await uploadBytes(fileRef, assignmentFile)
-        console.log("FILE: ", uploadFile)
+        // console.log("FILE: ", uploadFile)
 
         let assignmentFileUrl;
         await getDownloadURL(uploadFile.ref).then((downloadURL) => {
             assignmentFileUrl = downloadURL;
-            console.log("URL: ", assignmentFileUrl)
+            // console.log("URL: ", assignmentFileUrl)
         })
-
-        const classesData = await getDoc(doc(db, 'classes', courseId))
-
-        const updatedClassData = {}
 
         const date = `${new Date().getDate() < "10" ? `0${new Date().getDate()}` : `${new Date().getDate()}`}`
         const month = `${new Date().getMonth() + 1 < "10" ? `0${new Date().getMonth() + 1}` : `${new Date().getMonth() + 1}`}`
@@ -109,78 +105,27 @@ export const createAssignmentAction = (courseId, subject, assignmentNumber, assi
         const lastMonth = `${new Date(lastDate).getMonth() + 1 < "10" ? `0${new Date(lastDate).getMonth() + 1}` : `${new Date(lastDate).getMonth() + 1}`}`
         const deadline = `${lastDay}.${lastMonth}.${new Date(lastDate).getFullYear()}`
 
-        Object.keys(classesData.data().class).map((std) => {
+        const sections = await getDoc(doc(db, 'no_of_sections', courseId))
 
-            if (std === subject) {
-
-                updatedClassData[std] = classesData.data().class[std]
-                updatedClassData[std].Assignment[assignmentNumber] = {
-                    "assignedOn": assignedOn,
-                    "assignment-file": assignmentFileUrl,
-                    "lastDate": deadline,
-                    "topic": topic,
-                    "students": {
-                        "submitted": [],
-                        "approved": []
-                    }
-                }
-            } else {
-                updatedClassData[std] = classesData.data().class[std]
+        const sectionWiseStudentList = {}
+        sections.data().sections.map((sec) => {
+            sectionWiseStudentList[sec] = {
+                "submitted": {},
+                "approved": {},
             }
         })
 
-        setTimeout(async () => {
-            console.log('Updated Class: ', updatedClassData)
-
-            if (Object.keys(updatedClassData).length !== 0) {
-                await setDoc(doc(db, 'classes', courseId), {
-                    "class": updatedClassData
-                }, { merge: true })
-
-                // const assignData = await getDoc(doc(db, "classes", courseId))
-
-            } else {
-                console.log('Class is not updated!!!!')
-            }
-
-            dispatch({
-                type: CREATE_ASSIGNMENT_SUCCESS
+        await updateDoc(doc(db, 'assignment', courseId), {
+            [`${subject}.assignment`]: arrayUnion({
+                "assignedOn": assignedOn,
+                "assignment-file": assignmentFileUrl,
+                "lastDate": deadline,
+                "topic": topic,
+                "students": sectionWiseStudentList
             })
-        }, 1000)
-
-
-        const groupData = await getDoc(doc(db, 'Group', courseId))
-        const students = groupData.data().student
-
-        students.map(async (id) => {
-
-            const stdProfile = await getDoc(doc(db, 'profile', id))
-
-            const assignmentUpdatedData = {}
-            const stdAssignmentData = stdProfile.data().Assignment
-
-            Object.keys(stdAssignmentData).map((std) => {
-
-                if (std === subject) {
-
-                    assignmentUpdatedData[std] = stdAssignmentData[std]
-                    assignmentUpdatedData[std][assignmentNumber] = {
-                        "assignment-pdf-file": '',
-                        "status": 'Not-Submitted',
-                        "submittedOn": ''
-                    }
-
-                } else {
-                    assignmentUpdatedData[std] = stdAssignmentData[std]
-                }
-            })
-
-            await setDoc(doc(db, 'profile', id), {
-                "Assignment": assignmentUpdatedData
-            }, { merge: true })
-
         })
 
+        dispatch({ type: CREATE_ASSIGNMENT_SUCCESS })
 
     } catch (error) {
         dispatch({
@@ -191,69 +136,19 @@ export const createAssignmentAction = (courseId, subject, assignmentNumber, assi
 }
 
 
-export const approvedStudentAssignmentAction = (courseId, subject, assignmentNumber, student) => async (dispatch, getState) => {
+export const approvedStudentAssignmentAction = (courseId, subject, assignmentNumber, section, studentId) => async (dispatch, getState) => {
 
     try {
 
-        const assignData = await getDoc(doc(db, "classes", courseId))
-        // const assignmentData = assignData.data().class[std]['Assignment'][assignmentNumber - 1]
+        console.log('I am here...')
+        const data = await getDoc(doc(db, 'assignment', courseId))
+        const assignmentData = data.data()[subject].assignment
+        assignmentData[assignmentNumber - 1].students[section].approved[studentId] = assignmentData[assignmentNumber - 1].students[section].submitted[studentId]
+        delete assignmentData[assignmentNumber - 1].students[section].submitted[studentId]
 
-        const updatedClassData = {}
-        Object.keys(assignData.data().class).map((std) => {
-
-            if (std === subject) {
-
-                updatedClassData[std] = assignData.data().class[std]
-                // if (updatedClassData[std]['Assignment'][assignmentNumber - 1].students.length !== 0) {
-                updatedClassData[std]['Assignment'][assignmentNumber - 1].students.approved.push(student.id)
-                // } else {
-                // updatedClassData[std]['Assignment'][assignmentNumber - 1].approved[0] = student.id
-                // }
-                const submittedStdArray = updatedClassData[std]['Assignment'][assignmentNumber - 1].students.submitted
-                const index = submittedStdArray.indexOf(student.id)
-                if (index > -1) {
-                    submittedStdArray.splice(index, 1)
-                }
-
-                updatedClassData[std]['Assignment'][assignmentNumber - 1].students.submitted = submittedStdArray
-
-            } else {
-                updatedClassData[std] = assignData.data().class[std]
-            }
+        await updateDoc(doc(db, 'assignment', courseId), {
+            [`${subject}.assignment`]: assignmentData
         })
-
-        if (Object.keys(updatedClassData).length !== 0) {
-            await setDoc(doc(db, 'classes', courseId), {
-                "class": updatedClassData
-            }, { merge: true })
-
-
-        } else {
-            console.log('Class is not updated!!!!')
-        }
-
-        const stdProfileData = await getDoc(doc(db, 'profile', student.id))
-
-        const assignmentUpdatedData = {}
-        const stdAssignmentData = stdProfileData.data().Assignment
-
-        Object.keys(stdAssignmentData).map((std) => {
-
-            if (std === subject) {
-
-                assignmentUpdatedData[std] = stdAssignmentData[std]
-                assignmentUpdatedData[std][assignmentNumber - 1].status = 'Approved'
-
-            } else {
-                assignmentUpdatedData[std] = stdAssignmentData[std]
-            }
-        })
-
-        await setDoc(doc(db, 'profile', student.id), {
-            "Assignment": assignmentUpdatedData
-        }, { merge: true })
-
-
 
     } catch (error) {
         console.log('Error: ', error)
@@ -262,74 +157,24 @@ export const approvedStudentAssignmentAction = (courseId, subject, assignmentNum
 }
 
 
-export const rejectStudentSubmissionAction = (courseId, subject, assignmentNumber, student) => async (dispatch, getState) => {
+export const rejectStudentSubmissionAction = (courseId, subject, assignmentNumber, section, studentId) => async (dispatch, getState) => {
 
     try {
 
-        const assignData = await getDoc(doc(db, "classes", courseId))
-        // const assignmentData = assignData.data().class[std]['Assignment'][assignmentNumber - 1]
+        console.log('I am here...')
+        const data = await getDoc(doc(db, 'assignment', courseId))
+        const assignmentData = data.data()[subject].assignment
+        // assignmentData[assignmentNumber - 1].students[section].approved[studentId] = assignmentData[assignmentNumber - 1].students[section].submitted[studentId]
+        delete assignmentData[assignmentNumber - 1].students[section].submitted[studentId]
 
-        const updatedClassData = {}
-        Object.keys(assignData.data().class).map((std) => {
-
-            if (std === subject) {
-
-                updatedClassData[std] = assignData.data().class[std]
-                // if (updatedClassData[std]['Assignment'][assignmentNumber - 1].students.length !== 0) {
-                // updatedClassData[std]['Assignment'][assignmentNumber - 1].students.approved.push(student.id)
-                // } else {
-                // updatedClassData[std]['Assignment'][assignmentNumber - 1].approved[0] = student.id
-                // }
-                const submittedStdArray = updatedClassData[std]['Assignment'][assignmentNumber - 1].students.submitted
-                const index = submittedStdArray.indexOf(student.id)
-                if (index > -1) {
-                    submittedStdArray.splice(index, 1)
-                }
-
-                updatedClassData[std]['Assignment'][assignmentNumber - 1].students.submitted = submittedStdArray
-
-            } else {
-                updatedClassData[std] = assignData.data().class[std]
-            }
+        await updateDoc(doc(db, 'assignment', courseId), {
+            [`${subject}.assignment`]: assignmentData
         })
-
-        if (Object.keys(updatedClassData).length !== 0) {
-            await setDoc(doc(db, 'classes', courseId), {
-                "class": updatedClassData
-            }, { merge: true })
-
-
-        } else {
-            console.log('Class is not updated!!!!')
-        }
-
-        const stdProfileData = await getDoc(doc(db, 'profile', student.id))
-
-        const assignmentUpdatedData = {}
-        const stdAssignmentData = stdProfileData.data().Assignment
-
-        Object.keys(stdAssignmentData).map((std) => {
-
-            if (std === subject) {
-
-                assignmentUpdatedData[std] = stdAssignmentData[std]
-                assignmentUpdatedData[std][assignmentNumber - 1].status = 'Not-Submitted'
-                assignmentUpdatedData[std][assignmentNumber - 1]['assignment-pdf-file'] = ''
-                assignmentUpdatedData[std][assignmentNumber - 1].submittedOn = ''
-
-            } else {
-                assignmentUpdatedData[std] = stdAssignmentData[std]
-            }
-        })
-
-        await setDoc(doc(db, 'profile', student.id), {
-            "Assignment": assignmentUpdatedData
-        }, { merge: true })
-
-
 
     } catch (error) {
         console.log('Error: ', error)
+
+
     }
 }
 
@@ -342,33 +187,22 @@ export const changeNotesFileAction = (courseId, subject, notesNumber, file) => a
         const fileRef = ref(storage, `Notes/${courseId}/${subject}/${notesNumber}/${file.name}`);
 
         const uploadFile = await uploadBytes(fileRef, file)
-        console.log("FILE: ", uploadFile)
+        // console.log("FILE: ", uploadFile)
 
-        let notesFileUrl;
+        let notesFileUrl = '';
         await getDownloadURL(uploadFile.ref).then((downloadURL) => {
             notesFileUrl = downloadURL;
-            console.log("URL: ", notesFileUrl)
+            // console.log("URL: ", notesFileUrl)
         })
 
-        const notesRefData = await getDoc(doc(db, 'notes', courseId))
+        const data = await getDoc(doc(db, 'notes', courseId))
+        const notesData = data.data()[subject].notes
+        notesData[notesNumber]['notes-file'] = notesFileUrl
 
-        const updatedNotesData = {}
-
-        Object.keys(notesRefData.data().notes).map((std) => {
-
-            if (std === subject) {
-
-                updatedNotesData[std] = notesRefData.data().notes[std]
-                updatedNotesData[std][notesNumber]['notes-file'] = notesFileUrl
-
-
-            } else {
-                updatedNotesData[std] = notesRefData.data().notes[std]
-            }
-        })
+        // console.log('Data: ', notesData)
 
         await updateDoc(doc(db, 'notes', courseId), {
-            "notes": updatedNotesData
+            [`${subject}.notes`]: notesData
         })
 
     } catch (error) {
@@ -387,12 +221,12 @@ export const uploadNewNotesAction = (courseId, subject, file, newNoteIndex, topi
         const fileRef = ref(storage, `Notes/${courseId}/${subject}/${newNoteIndex}/${file.name}`);
 
         const uploadFile = await uploadBytes(fileRef, file)
-        console.log("FILE: ", uploadFile)
+        // console.log("FILE: ", uploadFile)
 
         let notesFileUrl;
         await getDownloadURL(uploadFile.ref).then((downloadURL) => {
             notesFileUrl = downloadURL;
-            console.log("URL: ", notesFileUrl)
+            // console.log("URL: ", notesFileUrl)
         })
 
         const date = `${new Date().getDate() < "10" ? `0${new Date().getDate()}` : `${new Date().getDate()}`}`
@@ -400,7 +234,7 @@ export const uploadNewNotesAction = (courseId, subject, file, newNoteIndex, topi
         const postedOn = `${date}.${month}.${new Date().getFullYear()}`
 
         await updateDoc(doc(db, 'notes', courseId), {
-            ["notes." + subject]: arrayUnion({
+            [`${subject}.notes`]: arrayUnion({
                 'notes-file': notesFileUrl,
                 'topic': topic,
                 'postedOn': postedOn
@@ -426,16 +260,24 @@ export const createNewQuizAction = (courseId, subject, topic, quizDeadline, tota
         const lastMonth = `${new Date(quizDeadline).getMonth() + 1 < "10" ? `0${new Date(quizDeadline).getMonth() + 1}` : `${new Date(quizDeadline).getMonth() + 1}`}`
         const deadline = `${lastDay}.${lastMonth}.${new Date(quizDeadline).getFullYear()}`
 
+
+        const sections = await getDoc(doc(db, 'no_of_sections', courseId))
+
+        const sectionWiseStudentList = {}
+        sections.data().sections.map((sec) => {
+            sectionWiseStudentList[sec] = {
+                "submitted": {},
+            }
+        })
+
         await updateDoc(doc(db, 'quiz', courseId), {
-            ["quiz." + subject]: arrayUnion({
+            [`${subject}.quiz`]: arrayUnion({
                 'topic': topic,
                 'quizDeadline': deadline,
-                'totalQuestions': totalQuestions,
+                'totalQuestions': parseInt(totalQuestions),
                 'postedOn': postedOn,
                 'questions': [],
-                'students': {
-                    'submitted': [],
-                }
+                'students': sectionWiseStudentList
 
             })
         })
@@ -446,48 +288,21 @@ export const createNewQuizAction = (courseId, subject, topic, quizDeadline, tota
 }
 
 
-export const sendQuizToStudents = (courseId, subject, quizIndex, topic) => async (dispatch, getState) => {
+export const sendQuizToStudents = (courseId, subject, quizIndex) => async (dispatch, getState) => {
 
     try {
 
         const quizQuestion = JSON.parse(localStorage.getItem('quiz-question'))
-        const quizData = await getDoc(doc(db, 'quiz', courseId))
 
-        const updatedQuizData = []
-        quizData.data().quiz[subject].map((quiz, index) => {
-
-            if (index === quizIndex) {
-                updatedQuizData[index] = quiz
-                updatedQuizData[index].questions = quizQuestion
-            } else {
-                updatedQuizData[index] = quiz
-            }
-        })
+        const data = await getDoc(doc(db, 'quiz', courseId))
+        const quizData = data.data()[subject].quiz
+        quizData[quizIndex - 1].questions = quizQuestion
 
         await updateDoc(doc(db, 'quiz', courseId), {
-            ["quiz." + subject]: updatedQuizData
+            [`${subject}.quiz`]: quizData
         })
 
-
-        const groupData = await getDoc(doc(db, 'Group', courseId))
-
-        // setTimeout(() => {
-        groupData.data().student.map(async (id) => {
-            console.log('Id: ', id)
-
-            await updateDoc(doc(db, 'profile', id), {
-                ["Quiz." + subject]: arrayUnion({
-                    'score': '',
-                    'status': 'Not Attempted',
-                    'submittedOn': '',
-                    'topic': topic
-                })
-            })
-        })
-        // }, 1000)
-        setTimeout(() => {
-            localStorage.removeItem('quiz-question')
-        }, 1000)
+        localStorage.removeItem('quiz-question')
 
     } catch (error) {
         console.log('Error: ', error)
@@ -499,23 +314,16 @@ export const editQuizQuestion = (courseId, subject, quizIndex, updatedQuestion, 
 
     try {
 
-        const quizData = await getDoc(doc(db, 'quiz', courseId))
+        // console.log('I am here...')
+        const data = await getDoc(doc(db, 'quiz', courseId))
+        const quizData = data.data()[subject].quiz
 
-        const updatedQuizData = []
-        quizData.data().quiz[subject].map((quiz, index) => {
+        quizData[quizIndex].questions[quesNumber - 1] = updatedQuestion
 
-            if (index === quizIndex) {
-                updatedQuizData[index] = quiz
-                updatedQuizData[index].questions[quesNumber - 1] = updatedQuestion
-            } else {
-                updatedQuizData[index] = quiz
-            }
-        })
-
-        console.log('Updated Quiz Data: ', updatedQuizData)
+        // console.log('Updated Quiz Data: ', quizData)
 
         await updateDoc(doc(db, 'quiz', courseId), {
-            ["quiz." + subject]: updatedQuizData
+            [`${subject}.quiz`]: quizData
         })
 
 

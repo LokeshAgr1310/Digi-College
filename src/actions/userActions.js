@@ -23,12 +23,16 @@ import {
 
 
 
-import { query, doc, collection, where, getDocs, addDoc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { query, doc, collection, where, getDocs, addDoc, setDoc, getDoc, updateDoc, arrayRemove, arrayUnion } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { db } from '../firebase-config'
 import { async } from '@firebase/util';
+import { hash, compare } from 'bcryptjs'
 
 // useful variables
+
+// const bcrypt = require('bcrypt')
+
 const usersCollectionRef = collection(db, "users")
 const profileCollectionRef = collection(db, "profile")
 const teacherCollectionRef = collection(db, "teachers")
@@ -36,162 +40,112 @@ const teacherProfileCollectionRef = collection(db, "teachers_profile")
 const groupCollectionRef = collection(db, "Group")
 const librarianProfileRef = collection(db, 'librarian_profile')
 
-// const [userInfo, setUserInfo] = useState([])
-// const [profileInfo, setProfileInfo] = useState([])
 
-export const login = (id, email, password, isTeacher) => async (dispatch) => {
+export const login = (id, isTeacher) => async (dispatch) => {
+
+    /* for login, we have to keep in mind these following points --> 
+
+        ==> the user credentials is already checked in login components
+        1. checking if users is teacher or not
+        2. if teacher -> 
+            i) fetch the users and profile data acc to the given id
+            ii) then make an object of sections of all students of the class taught by the teacher
+            iii) then set users, profile, studentDataObeject to the local storage
+            iv) and dispatch the action
+
+        3. if not teacher ->
+            i) fetch the users and profile data acc to the given id
+            ii) and then just dispatch the actions
+    */
+
     try {
         dispatch({
             type: USER_LOGIN_REQUEST
         })
 
-        console.log('I am inside login function...')
-        // create the query
         let userInfo = []
         let profileInfo = []
-        console.log('Teacher: ', isTeacher)
+        let q;
         if (!isTeacher) {
 
-            let q = query(usersCollectionRef, where('reg-no', "==", id), where('email', '==', email), where('password', '==', password))
+            // getting the data from the id
+            const userData = await getDoc(doc(db, 'users', id))
 
-            // console.log("Query: ", q)
+            userInfo = {
+                ...userData.data(),
+                "id": id,
+                "role": 'student'
+            }
 
-            // gettting the data with the specified query
-            const data = await getDocs(q);
-            userInfo = data.docs.map((doc) => ({
+            // creating a query for the profile collection...
+            q = query(profileCollectionRef, where('u_id', "==", id))
+            const profileData = await getDocs(q)
+
+            // create the profileInfo object
+            profileInfo = profileData.docs.map((doc) => ({
                 ...doc.data(),
-                id: doc.id,
-
+                id: doc.id
             }))
 
-            if (userInfo.length === 0) {
-                dispatch({
-                    type: USER_LOGIN_FAIL,
-                    payload: 'Incorrect Login credentials'
-                })
-            } else {
+            dispatch({
+                type: USER_LOGIN_SUCCESS,
+                payload: userInfo,
+                userProfileInfo: profileInfo[0]
+            })
 
-                console.log("DATA: ", userInfo)
-
-                q = query(profileCollectionRef, where('u_id', "==", userInfo[0].id))
-                const profileData = await getDocs(q)
-
-                // create the profileInfo object
-                profileInfo = profileData.docs.map((doc) => ({
-                    ...doc.data(),
-                    id: doc.id
-                }))
-            }
+            // adding data to the localstorage
+            localStorage.setItem('userInfo', JSON.stringify(userInfo))
+            localStorage.setItem('userProfileInfo', JSON.stringify(profileInfo[0]))
         }
         else {
 
-            console.log('This is a teacher...')
-            let q = query(teacherCollectionRef, where('username', "==", id), where('email', '==', email), where('password', '==', password))
+            // getting the data from id
+            const userData = await getDoc(doc(db, 'teachers', id))
 
-            // console.log("Query: ", q)
+            userInfo = {
+                ...userData.data(),
+                "id": id,
+                "role": 'teacher'
+            }
 
-            // gettting the data with the specified query
-            const data = await getDocs(q);
-            userInfo = data.docs.map((doc) => ({
+            // creating a query for teacherProfile
+            q = query(teacherProfileCollectionRef, where('t_id', "==", id))
+            const profileData = await getDocs(q)
+
+            // create the profileInfo object
+            profileInfo = profileData.docs.map((doc) => ({
                 ...doc.data(),
-                id: doc.id,
-
+                id: doc.id
             }))
 
-            if (userInfo.length === 0) {
-                dispatch({
-                    type: USER_LOGIN_FAIL,
-                    payload: 'Incorrect Login credentials'
-                })
-            } else {
-
-                // console.log("ID: ", userInfo[0].id)
-                // console.log("CORRECT: ", userInfo[0].id === 'xDHarsREINkDOBSsM0JF')
-
-                q = query(teacherProfileCollectionRef, where('t_id', "==", userInfo[0].id))
-                const profileData = await getDocs(q)
-                // console.log('PROFILE ID: ', profileData)
-
-                // create the profileInfo object
-                profileInfo = profileData.docs.map((doc) => ({
-                    ...doc.data(),
-                    id: doc.id
-                }))
-
-                console.log('PROFILE INFO: ', profileInfo)
-
-
-                // onSnapshot(q, (snapshot) => {
-                //     snapshot.docs.map((doc) => {
-                //         profileInfo.push({
-                //             ...doc.data(),
-                //             id: doc.id
-                //         })
-                //     })
-                // })
-            }
-        }
-
-        if (isTeacher) {
-            userInfo[0].role = 'teacher'
-
             const studentDataObject = {}
-            const classes = Object.keys(profileInfo[0].attendance)
-            classes.map((std) => {
+            const classes = Object.keys(profileInfo[0].subject)
+            classes.map(async (std) => {
 
-                const studentsId = Object.keys(profileInfo[0].attendance[std])
-
-                const studentDataArray = []
-                studentsId.map(async (id) => {
-
-                    const data = await getDoc(doc(db, 'profile', id))
-                    studentDataArray.push({
-                        'id': id,
-                        'name': data.data().name,
-                        'reg-no': data.data()['reg-no'],
-                    })
+                const classData = await getDoc(doc(db, 'Group', std))
+                const stdDataSectionWise = {}
+                Object.keys(classData.data().student).map((sec) => {
+                    stdDataSectionWise[sec] = classData.data().student[sec]
                 })
 
-                console.log('STUDENT DATA ARRAY: ', studentDataArray)
-
-                studentDataObject[std] = studentDataArray
+                studentDataObject[std] = stdDataSectionWise
             })
 
             setTimeout(() => {
 
-                console.log('PROFILE DATA:', profileInfo[0])
                 dispatch({
                     type: USER_LOGIN_SUCCESS,
-                    payload: userInfo[0],
+                    payload: userInfo,
                     userProfileInfo: profileInfo[0]
                 })
-                console.log('DATA: ', profileInfo[0])
 
                 // adding data to the localstorage
-                localStorage.setItem('userInfo', JSON.stringify(userInfo[0]))
+                localStorage.setItem('userInfo', JSON.stringify(userInfo))
                 localStorage.setItem('userProfileInfo', JSON.stringify(profileInfo[0]))
-                console.log('STUDENT DATA OBJECT: ', studentDataObject)
 
                 localStorage.setItem('studentDetails', JSON.stringify(studentDataObject))
 
-            }, 4000)
-
-
-            // localStorage.setItem('studentsDetails', [])
-        } else {
-            userInfo[0].role = 'student'
-            console.log('PROFILE DATA:', profileInfo[0])
-            dispatch({
-                type: USER_LOGIN_SUCCESS,
-                payload: userInfo[0],
-                userProfileInfo: profileInfo[0]
-            })
-            console.log('DATA: ', profileInfo[0])
-
-            // adding data to the localstorage
-            localStorage.setItem('userInfo', JSON.stringify(userInfo[0]))
-            localStorage.setItem('userProfileInfo', JSON.stringify(profileInfo[0]))
-
+            }, 1000)
         }
 
 
@@ -206,6 +160,20 @@ export const login = (id, email, password, isTeacher) => async (dispatch) => {
 
 
 export const register = (password) => async (dispatch) => {
+
+    /* for register, we have to keep in mind these following points --> 
+        1. checking if regn is already registered or not 
+        2. if not create the user for users collection
+        3. then make results and semester results format
+        4. then allot the section and check for tranport
+        5. create the profile for the user
+        6. get the data of the created user (userInfo) and create profile (profileInfo)
+        7. Now adding the id of the profile of the user to the various documents --> 
+            i) in group collection
+            ii) attendance collection => here subject is fetched from the keys of subjects collection
+                and make a format and add to the respective courseIdWithsection
+            iii) fees collection => just add the fees format for the all the semester...
+    */
 
     try {
 
@@ -224,57 +192,45 @@ export const register = (password) => async (dispatch) => {
 
         if (data.docs.length === 0) {
             console.log('Not registered yet!!')
+            const hashedPassword = await hash(password, 4)
 
             const courseId = `${personalDetails['My-Details'].course}-${personalDetails['My-Details'].semester}`
 
+            // fetching subjects name...
             const subjectData = await getDoc(doc(db, 'subjects', courseId))
-            const subjects = Object.keys(subjectData.data().subject)
-            console.log("Subject Data:", subjectData.data().subject)
+            const subjectsCode = Object.keys(subjectData.data().subject)
 
-            // set the user data
+            // create the document in the users collection
             const createdUser = await addDoc(usersCollectionRef, {
                 'email': personalDetails['My-Details']['personal-email'],
                 'reg-no': personalDetails['My-Details'].regn,
-                'password': password,
+                'password': hashedPassword,
                 'registeredOn': new Date(),
             })
 
-            var subject = {}
-            let assignment = {}
-            let quiz = {}
-            for (var i = 0; i < subjects.length; i++) {
-                subject[subjects[i]] = {
-                    "attendence": {
-                        "Jan": {},
-                        "Feb": {},
-                        "Mar": {},
-                        "Apr": {},
-                        "May": {},
-                        "Jun": {},
-                        "Jul": {},
-                        "Aug": {},
-                        "Sept": {},
-                        "Oct": {},
-                        "Nov": {},
-                        "Dec": {},
+            var results = {}
+
+            // creating a results field containing sessional and PUT marks
+            let i;
+            for (i = 0; i < subjectsCode.length; i++) {
+
+                results[subjectsCode[i]] = {
+                    "sessional": {
+                        "score": null,
+                        "status": null,
                     },
-                    "results": {
-                        "sessional": {
-                            "score": null,
-                            "status": null,
-                        },
-                        "PUT": {
-                            "score": null,
-                            "status": null,
-                        }
+                    "PUT": {
+                        "score": null,
+                        "status": null
                     }
                 }
-                assignment[subjects[i]] = []
-                quiz[subject[i]] = []
+
             }
 
+
+            // semester results upto the current semester
             var semesterResults = {}
-            for (var i = 1; i <= personalDetails['My-Details'].semester; i++) {
+            for (i = 1; i <= personalDetails['My-Details'].semester; i++) {
                 semesterResults[`${i}`] = {
                     "score": null,
                     "downloadLink": null,
@@ -282,6 +238,22 @@ export const register = (password) => async (dispatch) => {
                 }
             }
 
+            // allot the section to the user
+            let section = ''
+            const sectionData = await getDoc(doc(db, 'sections', courseId))
+            Object.keys(sectionData.data()).map((sec) => {
+                if (sectionData.data()[sec].includes(personalDetails['My-Details'].regn)) {
+                    section = sec
+                }
+            })
+
+            // checking student have tranport or not...and if yes then fetch the route
+            const transportData = await getDoc(doc(db, 'transport_students', courseId))
+            const isTransport = Object.keys(transportData.data().student).includes(personalDetails['My-Details'].regn)
+            let transportRoute = ''
+            if (isTransport) {
+                transportRoute = transportData.data().student[personalDetails['My-Details'].regn]
+            }
             // set the profile data
             const userProfile = await addDoc(profileCollectionRef, {
                 'name': personalDetails['My-Details'].name,
@@ -290,7 +262,7 @@ export const register = (password) => async (dispatch) => {
                 'semester': personalDetails['My-Details'].semester,
                 'u_id': createdUser.id,
                 "createdOn": new Date(),
-                "subject": subject,
+                "subject": results,
                 "semesterResults": semesterResults,
                 "Personal-Details": {
                     ...personalDetails,
@@ -300,80 +272,62 @@ export const register = (password) => async (dispatch) => {
                 "Communication-Details": commDetails,
                 "Educational-Details": eduDetails,
                 "image_url": "",
-                "Assignment": assignment,
-                "Quiz": quiz
+                "section": section,
+                "transport": isTransport
             })
 
-
-
-            console.log('CREATED USER:', createdUser.id)
-            console.log('PROFILE CREATED', userProfile.id)
-
-            // getting the user data after adding it to database
-            q = query(usersCollectionRef, where('reg-no', "==", personalDetails['My-Details'].regn))
-            const userData = await getDocs(q)
+            // get the users data after being created...
+            const userData = await getDoc(doc(db, 'users', createdUser.id))
 
             // create the userInfo object
-            const userInfo = userData.docs.map((doc) => ({
-                ...doc.data(),
-                id: doc.id,
-
-            }))
-
-
+            const userInfo = {
+                ...userData.data(),
+                "id": createdUser.id,
+                "role": "student"
+            }
 
             // get the user profile after adding it to database
-            q = query(profileCollectionRef, where('u_id', "==", userInfo[0].id))
-            const profileData = await getDocs(q)
+            const profileData = await getDoc(doc(db, 'profile', userProfile.id))
 
             // create the profileInfo object
-            const profileInfo = profileData.docs.map((doc) => ({
-                ...doc.data(),
-                id: doc.id
-            }))
-
-            console.log('COURSE ID: ', courseId)
-
+            const profileInfo = {
+                ...profileData.data(),
+                "id": userProfile.id
+            }
 
             // get the group according to the course and semester
             const groupData = await getDoc(doc(db, 'Group', courseId))
 
-            console.log('GROUP DATA: ', groupData.data().student)
-            // set the id to the corresonding group
-
-            await setDoc(doc(db, 'Group', courseId), {
-                student: [
-                    ...groupData.data().student, profileInfo[0].id]
+            await updateDoc(doc(db, 'Group', courseId), {
+                [`student.${section}`]: {
+                    ...groupData.data().student[section],
+                    [profileInfo.id]: {
+                        "name": profileInfo.name,
+                        "regn": profileInfo['reg-no'],
+                        "profile_image": ""
+                    }
+                }
             })
-
-
-            // get the subject teacher of the corresponding class
-            const facultyData = await getDoc(doc(db, 'faculty', courseId))
-
-            const subjectsInFacultCollection = Object.keys(facultyData.data().subject)
+            // }
 
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
 
-            // create the empty structure of the attendance in the teacher_profile
+            // create the empty structure of the attendance in the attendance collection
             // when the new student entered into the portal
 
-            subjectsInFacultCollection.map(async (subject, index) => {
-                const teacherProfileId = facultyData.data().subject[subject]
-                console.log('TEACHER PROFILE ID: ', teacherProfileId)
-                const teacherProfileDoc = doc(db, 'teachers_profile', teacherProfileId)
-                const teacherProfileData = await getDoc(teacherProfileDoc);
+            // for that get all the students attendance data subject wise
 
-                console.log('TEACHER PRFILE DATA: ', teacherProfileData.data()?.attendance[courseId])
+            const courseIdWithSection = `${courseId}-${profileInfo.section}`
+            const attendanceData = await getDoc(doc(db, 'attendance', courseIdWithSection))
 
-                // const teacherProfile = await getDoc(teacherProfileDoc)
+            subjectsCode.map(async (subject, index) => {
 
-                // TODO: fix the no. of days in attendance
-
-                let studObject = {}
+                // creating the structure for the attendance of student
+                // let studObject = {}
                 let attendenceMonthWise = {}
                 let days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
                 let attendanceDayWise = {}
-                let attendance = {}
+                // let attendance = {}
                 let i;
                 let j;
                 for (i = 0; i < months.length; i++) {
@@ -384,51 +338,86 @@ export const register = (password) => async (dispatch) => {
                     attendenceMonthWise[months[i]] = attendanceDayWise
                 }
 
-                studObject[profileInfo[0].id] = attendenceMonthWise
+                // studObject[profileInfo.id] = attendenceMonthWise
 
-                if (teacherProfileData.data()?.attendance[courseId]) {
-                    attendance[courseId] = {
-                        ...teacherProfileData.data().attendance[courseId],
-                        ...studObject
+                await updateDoc(doc(db, 'attendance', courseIdWithSection), {
+                    [subject]: {
+                        ...attendanceData.data()[subject],
+                        [profileInfo.id]: attendenceMonthWise
+                    }
+                })
+            })
+
+            // fetching the total fees acc to given course...
+            const academicFees = await getDoc(doc(db, 'fees_amount', 'Academic'))
+            let transportFeesAccToRoute = ''
+            if (isTransport) {
+                const transportFees = await getDoc(doc(db, 'fees_amount', 'Transport'))
+                transportFeesAccToRoute = transportFees.data()[transportRoute]
+            }
+
+
+            // creating a fees structure
+            let feesStructure = {}
+            for (i = 1; i <= profileInfo.semester; i++) {
+                if (isTransport) {
+                    feesStructure[i] = {
+                        "academic": {
+                            "finalPaidOn": "",
+                            "remaining": i == profileInfo.semester ? academicFees.data()[profileInfo.course] : 0,
+                            "status": `${i == profileInfo.semester ? "Not-Paid" : "Paid"}`,
+                            "totalFees": academicFees.data()[profileInfo.course],
+                        },
+                        "history": [],
+                        "miscellaneous": {},
+                        "transport": {
+                            "finalPaidOn": "",
+                            "remaining": i == profileInfo.semester ? transportFeesAccToRoute : 0,
+                            "status": `${i == profileInfo.semester ? "Not-Paid" : "Paid"}`,
+                            "totalFees": transportFeesAccToRoute,
+
+                        },
                     }
                 } else {
-                    attendance[courseId] = studObject
+                    feesStructure[i] = {
+                        "academic": {
+                            "finalPaidOn": "",
+                            "remaining": i == profileInfo.semester ? academicFees.data()[profileInfo.course] : 0,
+                            "status": `${i == profileInfo.semester ? "Not-Paid" : "Paid"}`,
+                            "totalFees": academicFees.data()[profileInfo.course],
+                        },
+                        "history": [],
+                        "miscellaneous": {},
+                    }
                 }
-                console.log('ATTENDANCE OBJECT: ', attendance)
-                await setDoc(doc(db, 'teachers_profile', teacherProfileId), {
-                    'attendance': attendance
-                }, { merge: true })
+            }
 
-                // console.log('UPDATED DATA: ', updatedAttendance)
+            // adding to the fees collection
+            await updateDoc(doc(db, 'Fees', courseId), {
+                [profileInfo.id]: {
+                    ...feesStructure,
+                    "name": profileInfo.name,
+                    "regn": profileInfo['reg-no']
+                }
             })
 
 
             setTimeout(() => {
 
-                console.log('PROFILE DATA: ', profileInfo[0])
-
                 dispatch({
                     type: USER_REGISTER_SUCCESS,
-                    payload: userInfo[0],
-                    userProfileInfo: profileInfo[0]
+                    payload: userInfo,
+                    userProfileInfo: profileInfo
                 })
 
-                console.log("DATA: ", userInfo)
-
-                userInfo[0].role = 'student'
-
-                // const assignmentData = await getDoc(doc(db, 'classes', courseId))
-                // localStorage.setItem('assignmentData', JSON.stringify(assignmentData))
-
-                localStorage.setItem('userInfo', JSON.stringify(userInfo[0]))
-                localStorage.setItem('userProfileInfo', JSON.stringify(profileInfo[0]))
-                // localStorage.setItem('profileInfo', )
+                localStorage.setItem('userInfo', JSON.stringify(userInfo))
+                localStorage.setItem('userProfileInfo', JSON.stringify(profileInfo))
                 dispatch({
                     type: USER_LOGIN_SUCCESS,
-                    payload: userInfo[0],
-                    userProfileInfo: profileInfo[0]
+                    payload: userInfo,
+                    userProfileInfo: profileInfo
                 })
-            }, 4000)
+            }, 2500)
 
             localStorage.removeItem('PersonalDetails')
             localStorage.removeItem('CommunicationDetails')
@@ -551,6 +540,8 @@ export const uploadImage = (image) => async (dispatch, getState) => {
         const uploadTask = await uploadBytes(imagesRef, image)
         console.log("FILE: ", uploadTask)
 
+        const courseId = `${userProfileInfo.course}-${userProfileInfo.semester}`
+
         let url;
         await getDownloadURL(uploadTask.ref).then((downloadURL) => {
             url = downloadURL;
@@ -564,6 +555,10 @@ export const uploadImage = (image) => async (dispatch, getState) => {
         const updatedData = await setDoc(doc(db, 'profile', userProfileInfo.id), {
             'image_url': url
         }, { merge: true })
+
+        await updateDoc(doc(db, 'Group', courseId), {
+            [`student.${userProfileInfo.section}.${userProfileInfo.id}.profile_image`]: url
+        })
 
         console.log('UPDATED DATA: ', updatedData)
 
@@ -729,35 +724,61 @@ export const administrativeLoginAction = (username, email, password, isLibrarian
 
         dispatch({ type: USER_LOGIN_REQUEST })
 
-        let q = query(librarianProfileRef, where('username', "==", username), where('email', '==', email), where('password', '==', password))
+        // let q = query(librarianProfileRef, where('username', "==", username), where('email', '==', email), where('password', '==', password))
+
+        if (isLibrarian) {
+
+            const librarianProfileRef = await getDoc(doc(db, 'administrative_profile', 'Librarian'))
+            const librarianProfileInfo = librarianProfileRef.data()
+
+            if (librarianProfileInfo.email !== email || librarianProfileInfo.username !== username || librarianProfileInfo.password !== password) {
+
+                dispatch({
+                    type: USER_LOGIN_FAIL,
+                    error: 'Incorrect Login Credentials'
+                })
+            } else {
+
+                librarianProfileInfo.role = 'librarian'
+                dispatch({
+                    type: USER_LOGIN_SUCCESS,
+                    payload: librarianProfileInfo
+                })
+
+                localStorage.setItem('userInfo', JSON.stringify(librarianProfileInfo))
+            }
+        } else {
+            const officeProfileRef = await getDoc(doc(db, 'administrative_profile', 'Office'))
+            const officeProfileInfo = officeProfileRef.data()
+
+            if (officeProfileInfo.email !== email || officeProfileInfo.username !== username || officeProfileInfo.password !== password) {
+
+                dispatch({
+                    type: USER_LOGIN_FAIL,
+                    error: 'Incorrect Login Credentials'
+                })
+            } else {
+
+                officeProfileInfo.role = 'office'
+                dispatch({
+                    type: USER_LOGIN_SUCCESS,
+                    payload: officeProfileInfo
+                })
+
+                localStorage.setItem('userInfo', JSON.stringify(officeProfileInfo))
+            }
+        }
 
         // console.log("Query: ", q)
 
         // gettting the data with the specified query
-        const data = await getDocs(q);
-        let librarianProfileInfo = []
-        librarianProfileInfo = data.docs.map((doc) => ({
-            ...doc.data(),
-            id: doc.id,
+        // const data = await getDocs(q);
+        // let librarianProfileInfo = []
+        // librarianProfileInfo = data.docs.map((doc) => ({
+        //     ...doc.data(),
+        //     id: doc.id,
 
-        }))
-
-        if (librarianProfileInfo.length === 0) {
-
-            dispatch({
-                type: USER_LOGIN_FAIL,
-                error: 'Incorrect Login Credentials'
-            })
-        } else {
-
-            librarianProfileInfo[0].role = 'librarian'
-            dispatch({
-                type: USER_LOGIN_SUCCESS,
-                payload: librarianProfileInfo[0]
-            })
-
-            localStorage.setItem('userInfo', JSON.stringify(librarianProfileInfo[0]))
-        }
+        // }))
 
     } catch (error) {
         console.log('Error', error)
