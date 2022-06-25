@@ -33,6 +33,10 @@ import AdministrativeLogin from './components/AdministrativeLogin';
 import LibrarianDashboard from './components/LibrarianDashboard';
 import LibrarianRecords from './components/LibrarianRecords';
 import LibrarianBooks from './components/LibrarianBooks';
+import StudentFees from './components/StudentFees';
+import Office from './components/Office';
+import OfficeRecords from './components/OfficeRecords';
+import OfficeIndividualRecord from './components/OfficeIndividualRecord';
 
 function App() {
 
@@ -42,13 +46,12 @@ function App() {
 
   return (
     <div className="App">
-      {/* <Header /> */}
-      <div className="body">
+      <div>
         <Router>
-          {/* {userInfo && <Navigation />} */}
           <Navigation />
+          {/* {userInfo && <Navigation />} */}
+          {/* <Container> */}
           <div className="home">
-            {/* <Container> */}
 
             <Routes>
 
@@ -58,7 +61,7 @@ function App() {
               <Route path='/attendance' element={<Attendance />} />
 
               {/* Teacher Side Attendance */}
-              <Route path='/attendance1' element={<Attendance1 />} />
+              <Route path='/teacher/attendance' element={<Attendance1 />} />
 
               {/* Teacher Side Indivdual Assignment */}
               <Route path='/class/:classname/assignment/:assignment' element={<TeacherIndividualAssignment />} />
@@ -70,10 +73,10 @@ function App() {
               <Route path='/register/step=:step' element={<Register />} />
 
               {/* Student Dashboard */}
-              <Route path='/home' element={<Home />} />
+              <Route path='/student-dashboard' element={<Home />} />
 
               {/* Teacher Dashboard */}
-              <Route path='/home1' element={<Home1 />} />
+              <Route path='/teacher-dashboard' element={<Home1 />} />
 
               {/* Student and Teacher Both Login Page */}
               <Route path='/login' element={<Login />} />
@@ -85,13 +88,16 @@ function App() {
               <Route path='/class/:classname' element={<IndividualClass />} />
 
               {/* Teacher side creating the quiz page */}
-              <Route path='/class/:classname/create-quiz/:topic' element={<CreateQuiz />} />
+              <Route path='/class/:classname/create-quiz/:quizNo' element={<CreateQuiz />} />
 
               {/* Teacher side showing all classes*/}
               <Route path='/classes' element={<Classes1 />} />
 
               {/* showing Particular Quiz Question */}
-              <Route path='/class/:classname/quiz/:topic' element={userInfo?.role === 'teacher' ? <TeacherIndividualQuiz /> : <StudentIndividualQuiz />} />
+              <Route path='/class/:classname/quiz/:quizNo' element={userInfo?.role === 'teacher' ? <TeacherIndividualQuiz /> : <StudentIndividualQuiz />} />
+
+              {/* Fees */}
+              <Route path="/fees" element={<StudentFees />} />
 
               {/* Library */}
               <Route path='/library' element={<Library />} />
@@ -100,11 +106,21 @@ function App() {
               <Route path='/librarian-books' element={<LibrarianBooks />} />
               <Route path='/librarian-records' element={<LibrarianRecords />} />
 
+              {/* Office Page */}
+              <Route path='/office/fees' element={<Office />} />
+
+              {/* Office Record */}
+              <Route path='/office-records' element={<OfficeRecords />} />
+
+              {/* Office Individual Record */}
+              <Route path='/office-records/:id' element={<OfficeIndividualRecord />} />
+
+
               {/* Student Profile */}
               <Route path='/profile' element={<Profile />} />
 
               {/* Teacher Profile */}
-              <Route path='/profile1' element={<Profile1 />} />
+              <Route path='/teacher-profile' element={<Profile1 />} />
 
               {/* Student Results */}
               <Route path='/results' element={<Results />} />
@@ -113,13 +129,24 @@ function App() {
               <Route path='/syllabus' element={<Syllabus />} />
 
               {/* Teacher Side Syllabus */}
-              <Route path='/syllabus1' element={<Syllabus1 />} />
+              <Route path='/teacher/syllabus' element={<Syllabus1 />} />
 
               {/* Time Table */}
-              <Route path='time-table' element={<TimeTable />} />
+              <Route path='/time-table' element={<TimeTable />} />
 
               {/* Landing Page... */}
-              <Route path='/' element={<Content />} exact />
+              <Route path='/' element={
+                userInfo && userInfo?.role === 'student'
+                  ? <Home />
+                  : userInfo?.role === 'teacher'
+                    ?
+                    <Home1 />
+                    : userInfo?.role === 'librarian'
+                      ? <LibrarianDashboard />
+                      : userInfo?.role === 'office'
+                        ? <Office />
+                        : <Content />
+              } exact />
             </Routes>
             {/* </Container> */}
           </div>
