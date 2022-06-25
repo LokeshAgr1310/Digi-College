@@ -7,12 +7,23 @@ import { createNewQuizAction } from '../actions/teacherActions'
 import Loader from './Loading'
 import { onSnapshot, doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase-config'
+import { toast, ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css';
 
 // TODO: show topscores or rank of the student
 // TODO: Did not create the new quiz if any quiz is pending...
 
 function TeacherQuiz({ std }) {
 
+    const toastPropertyProps = {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+    }
 
     const { userProfileInfo } = useSelector(state => state.userLogin)
 
@@ -39,13 +50,20 @@ function TeacherQuiz({ std }) {
 
         const createQuizFormHandler = (e) => {
             e.preventDefault()
-            setLoading(true)
-            dispatch(createNewQuizAction(courseId, std, topic, quizDeadline, totalQuestions))
-            setShowQuizModal(false)
-            setTimeout(() => {
-                setLoading(false)
-                navigate(`create-quiz/${topic.split(' ').join('-')}`)
-            }, 1000)
+            // setLoading(true)
+            try {
+                dispatch(createNewQuizAction(courseId, std, topic, quizDeadline, totalQuestions))
+                setShowQuizModal(false)
+                setTimeout(() => {
+                    toast.success('Quiz created successfully!! Now Create Questions...', toastPropertyProps)
+                }, 1000)
+                navigate(`create-quiz/${allQuizzes.length + 1}`)
+            } catch (error) {
+                toast.error('Something Went Wrong!!!', toastPropertyProps)
+            }
+            // setTimeout(() => {
+            //     setLoading(false)
+            // }, 1000)
             // getAssignmentDetails()
         }
         return (
@@ -116,7 +134,7 @@ function TeacherQuiz({ std }) {
     const getQuizDataDetails = async () => {
 
         onSnapshot(doc(db, 'quiz', courseId), (doc) => {
-            setAllQuizzes(doc.data().quiz[std])
+            setAllQuizzes(doc.data()[std].quiz)
         })
     }
 
@@ -138,8 +156,8 @@ function TeacherQuiz({ std }) {
 
                                         <Link to={
                                             quiz.questions.length !== parseInt(quiz.totalQuestions)
-                                                ? `create-quiz/${quiz.topic.split(' ').join('-')}`
-                                                : `quiz/${quiz.topic.split(' ').join('-')}`
+                                                ? `create-quiz/${index + 1}`
+                                                : `quiz/${index + 1}`
                                         }
                                             key={index}
                                             style={{
@@ -214,6 +232,9 @@ function TeacherQuiz({ std }) {
                     Create Quiz <i className="fa-solid fa-circle-plus ms-1"></i>
                 </Button>
             </div>
+            <ToastContainer style={{
+                fontSize: '15px'
+            }} />
         </div>
     )
 }

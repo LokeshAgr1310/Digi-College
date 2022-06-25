@@ -11,8 +11,8 @@ import { submitQuizAction } from '../actions/studentActions';
 function StudentIndividualQuiz() {
 
     const params = useParams()
-    const topic = params.topic.split('-').join(' ')
-    const std = params.classname.split('-').join(' ')
+    // const topic = params.topic.split('-').join(' ')
+    const std = params.classname
 
     const { userProfileInfo } = useSelector(state => state.userLogin)
     const { questions } = useSelector(state => state.quizQuestion)
@@ -38,7 +38,7 @@ function StudentIndividualQuiz() {
                         ?
                         <div className='d-flex justify-content-center align-items-center'>
                             {/* <h2>{topic}</h2> */}
-                            <Quiz quiz={questions} showInstantFeedback={true} onComplete={(obj) => dispatch(submitQuizAction(std, questions?.quizIndex, obj.correctPoints))} />
+                            <Quiz quiz={questions} showInstantFeedback={true} onComplete={(obj) => dispatch(submitQuizAction(std, userProfileInfo.section, questions?.quizIndex, obj.correctPoints))} />
                         </div>
                         :
                         <Loader />

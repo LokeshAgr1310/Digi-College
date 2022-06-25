@@ -44,10 +44,10 @@ function Classes1() {
                 {loading ?
                     <Loader />
                     : (
-                        Object.keys(classes).map((std, index) => (
+                        Object.keys(classes).sort().map((std, index) => (
 
                             <Link
-                                to={`/class/${std.split(' ').join('-')}`}
+                                to={`/class/${std}?tab=1`}
                                 // to={"#"}
                                 key={index}
                                 style={{
@@ -75,8 +75,15 @@ function Classes1() {
                                                 border: '1px solid #eee'
                                             }}
                                         />
-                                        <h4 className='profile-name'>{std}</h4>
-                                        <h5 className='proflie-post'>~ {classes[std].teacher}</h5>
+                                        <h4 className='profile-name'>
+                                            {classes[std].name}
+                                        </h4>
+                                        <h5 className='profile-post'>
+                                            ({
+                                                Object.keys(userProfileInfo.subject).map((cls) => userProfileInfo.subject[cls] === std && cls)
+                                            })
+                                        </h5>
+
                                     </div>
                                     {/* card middle */}
                                     {/* <div className="profile-middle d-flex justify-content-center align-items-center my-2">

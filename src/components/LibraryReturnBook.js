@@ -147,7 +147,7 @@ function LibraryReturnBook({ toastPropertyProps }) {
         getBooksCategory()
     }, [])
 
-    console.log('Books Data', bookData)
+    // console.log('Books Data', bookData)
     return (
         <div className='d-flex flex-column justify-content-center align-items-center w-100'>
             <h3 style={{

@@ -5,12 +5,25 @@ import { db } from '../firebase-config'
 import { Button, Popover, OverlayTrigger, Modal, Form, Row, Col } from 'react-bootstrap'
 import { changeNotesFileAction, uploadNewNotesAction } from '../actions/teacherActions'
 import Loader from './Loading'
+import { toast, ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css';
 
 function Notes({ std }) {
+
+    const toastPropertyProps = {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+    }
 
     const { userProfileInfo, userInfo } = useSelector(state => state.userLogin)
 
     const [notesData, setNotesData] = useState([])
+
     const [editFilePopoverShow, setEditFilePopoverShow] = useState(false)
     const [notesFile, setNotesFile] = useState([])
     const [notesNumber, setNotesNumber] = useState(-1)
@@ -19,7 +32,7 @@ function Notes({ std }) {
     const [showModal, setShowModal] = useState(false)
 
     let courseId = "";
-    if (userInfo.role === 'student') {
+    if (userInfo?.role === 'student') {
         courseId = `${userProfileInfo.course}-${userProfileInfo.semester}`
     } else {
         Object.keys(userProfileInfo.subject).forEach((key) => {
@@ -34,23 +47,23 @@ function Notes({ std }) {
 
     useEffect(() => {
         onSnapshot(doc(db, 'notes', courseId), (doc) => {
-            setNotesData(doc.data().notes[std])
+            setNotesData(doc.data()[std].notes)
         })
     }, [])
 
-    useEffect(() => {
-
-    }, [loading])
-
     const changeNotesFile = () => {
         if (notesFile.length !== 0) {
-            setLoading(true)
-            dispatch(changeNotesFileAction(courseId, std, notesNumber, notesFile[0]))
-            setTimeout(() => {
-                setLoading(false)
-            }, 1500)
-            setNotesFile([])
-            setEditFilePopoverShow(false)
+            // setLoading(true)
+            try {
+                dispatch(changeNotesFileAction(courseId, std, notesNumber, notesFile[0]))
+                setNotesFile([])
+                setEditFilePopoverShow(false)
+                setTimeout(() => {
+                    toast.success('Notes Files updated successfully!!', toastPropertyProps)
+                }, 1000)
+            } catch (error) {
+                toast.error('Something Went Wrong!!!', toastPropertyProps)
+            }
         }
     }
 
@@ -97,12 +110,14 @@ function Notes({ std }) {
 
         const uploadNotesFormHandler = (e) => {
             e.preventDefault()
-            setLoading(true)
-            dispatch(uploadNewNotesAction(courseId, std, newNotesFile[0], notesData.length, topic))
-            setTimeout(() => {
-                setLoading(false)
-            }, 2000)
-            setShowModal(false)
+            try {
+                // setLoading(true)
+                dispatch(uploadNewNotesAction(courseId, std, newNotesFile[0], notesData.length, topic))
+                toast.success('Notes uploaded successfully!!', toastPropertyProps)
+                setShowModal(false)
+            } catch (error) {
+                toast.error('Something Went Wrong!', toastPropertyProps)
+            }
             // getAssignmentDetails()
         }
         return (
@@ -206,7 +221,7 @@ function Notes({ std }) {
                                                 Click here to download
                                             </a>
                                             {
-                                                userInfo.role === 'teacher'
+                                                userInfo?.role === 'teacher'
                                                 && (
                                                     <OverlayTrigger trigger="click" placement="right" overlay={editFilePopover} show={editFilePopoverShow && notesNumber === index}>
                                                         <i
@@ -242,7 +257,7 @@ function Notes({ std }) {
                 }}
             />
             {
-                userInfo.role === 'teacher'
+                userInfo?.role === 'teacher'
                 && (
                     <div className='d-flex flex-row-reverse mt-3'>
                         <Button
@@ -254,7 +269,9 @@ function Notes({ std }) {
                     </div>
                 )
             }
-
+            <ToastContainer style={{
+                fontSize: '15px'
+            }} />
         </div>
     )
 }

@@ -1,35 +1,24 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
-import { Container, Table } from 'react-bootstrap';
+import { Container, Table, Button } from 'react-bootstrap';
 import Loader from './Loading';
 import { db } from '../firebase-config'
-import { getDoc, doc } from 'firebase/firestore'
+import { getDoc, doc, setDoc } from 'firebase/firestore'
 
 
 function Syllabus1() {
 
     const { userProfileInfo } = useSelector(state => state.userLogin)
 
-    const classes = Object.keys(userProfileInfo.attendance).sort()
+    const classes = Object.keys(userProfileInfo.subject).sort()
 
 
     const [activeTab, setActiveTab] = useState(classes[0])
     const [syllabus, setSyllabus] = useState({})
 
-    const course = activeTab.split('-')[0]
-    const semester = activeTab.split('-')[1]
-
-    console.log('COURsE: ', course)
-    console.log('semester: ', semester)
-
     const subjectData = async () => {
-        const data = await getDoc(doc(db, 'subjects', course))
-        if (userProfileInfo.subject[activeTab] === 'Digital Electronics ') {
-            const subSyllabus = data.data().subject[semester][userProfileInfo.subject[activeTab].trim()]
-            setSyllabus(subSyllabus)
-        } else {
-            setSyllabus(data.data().subject[semester][userProfileInfo.subject[activeTab]])
-        }
+        const data = await getDoc(doc(db, 'subjects', activeTab))
+        setSyllabus(data.data().subject[userProfileInfo.subject[activeTab]].syllabus)
     }
 
     useEffect(() => {
@@ -37,7 +26,6 @@ function Syllabus1() {
     }, [activeTab])
 
     console.log('SYLLABUS: ', syllabus)
-
 
     return (
         <div className='text'
@@ -116,7 +104,6 @@ function Syllabus1() {
                     </div>
                 </div>
             </Container>
-
         </div>
     )
 }

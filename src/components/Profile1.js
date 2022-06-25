@@ -3,7 +3,7 @@ import React from 'react'
 function Profile1() {
     return (
         <div className='text'>
-            Profile1
+            Teacher Profile
         </div>
     )
 }

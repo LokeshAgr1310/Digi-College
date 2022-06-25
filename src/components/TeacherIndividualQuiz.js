@@ -7,15 +7,26 @@ import { Form, Button, Image } from 'react-bootstrap'
 import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage'
 import { editQuizQuestion } from '../actions/teacherActions'
 import Loader from './Loading'
-
+import { toast, ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css';
 
 function TeacherIndividualQuiz() {
+
+    const toastPropertyProps = {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+    }
 
     const { userProfileInfo } = useSelector(state => state.userLogin)
 
     const params = useParams()
-    const topic = params.topic.split('-').join(' ')
-    const std = params.classname.split('-').join(' ')
+    const quizIndex = parseInt(params.quizNo) - 1
+    const std = params.classname
 
     let courseId = ""
     Object.keys(userProfileInfo.subject).forEach((key) => {
@@ -24,9 +35,8 @@ function TeacherIndividualQuiz() {
         }
     })
 
-    const [quizQuestions, setQuizQuestions] = useState([])
+    const [quizData, setQuizData] = useState({})
     const [quesNumber, setQuesNumber] = useState(1)
-    const [quizIndex, setQuizIndex] = useState(0)
     // const [quizIndex, setQuizIndex] = useState(0)
 
     const [question, setQuestion] = useState('')
@@ -44,78 +54,78 @@ function TeacherIndividualQuiz() {
     const [loading, setLoading] = useState(false)
 
     const dispatch = useDispatch()
+    // console.log('courseID: ', courseId)
 
     const getQuizDataDetails = async () => {
 
-        const allQuizData = await getDoc(doc(db, 'quiz', courseId))
-        // console.log('Quiz Data: ', allQuizData.data().quiz)
-        allQuizData.data().quiz[std].map((quiz, index) => {
-            if (topic === quiz.topic) {
-                setQuizQuestions(quiz.questions)
-                setQuizIndex(index)
-            }
+        onSnapshot(doc(db, 'quiz', courseId), (doc) => {
+            // console.log("Data: ", doc.data()[std].quiz[quizIndex])
+            setQuizData(doc.data()[std].quiz[quizIndex])
         })
     }
 
     useEffect(() => {
         getQuizDataDetails()
-    }, [loading])
+    }, [])
 
     useEffect(() => {
 
-    }, [quesNumber, isEdited, loading])
+    }, [quesNumber, isEdited])
 
     const questionEditHandler = () => {
-        setQuestion(quizQuestions[quesNumber - 1].question)
-        setOption1(quizQuestions[quesNumber - 1].option1)
-        setOption2(quizQuestions[quesNumber - 1].option2)
-        setOption3(quizQuestions[quesNumber - 1].option3)
-        setOption4(quizQuestions[quesNumber - 1].option4)
-        setCorrectOption(quizQuestions[quesNumber - 1].correctOption)
-        setExplanation(quizQuestions[quesNumber - 1].explanation)
-        setQuestionFileLink(quizQuestions[quesNumber - 1].questionFile)
+        setQuestion(quizData.questions[quesNumber - 1].question)
+        setOption1(quizData.questions[quesNumber - 1].option1)
+        setOption2(quizData.questions[quesNumber - 1].option2)
+        setOption3(quizData.questions[quesNumber - 1].option3)
+        setOption4(quizData.questions[quesNumber - 1].option4)
+        setCorrectOption(quizData.questions[quesNumber - 1].correctOption)
+        setExplanation(quizData.questions[quesNumber - 1].explanation)
+        setQuestionFileLink(quizData.questions[quesNumber - 1].questionFile)
         setIsEdited(true)
     }
 
     // console.log('Question: ', question)
 
     const saveTheChangeInQuizQuestion = async () => {
-        setLoading(true)
         setIsEdited(false)
 
         // console.log('Inside the function...')
+        try {
 
-        let quizQuestionFileUrl = '';
-        if (latestQuestionFile.length !== 0) {
-            const storage = getStorage()
-            const fileRef = ref(storage, `Quiz/${courseId}/${std}/${topic.split(' ').join('-')}/question/${quesNumber}/${latestQuestionFile[0].name}`);
+            let quizQuestionFileUrl = '';
+            if (latestQuestionFile.length !== 0) {
+                const storage = getStorage()
+                const fileRef = ref(storage, `Quiz/${courseId}/${std}/${params.quizNo}/question/${quesNumber}/${latestQuestionFile[0].name}`);
 
-            const uploadFile = await uploadBytes(fileRef, latestQuestionFile[0])
-            console.log("FILE: ", uploadFile)
+                const uploadFile = await uploadBytes(fileRef, latestQuestionFile[0])
+                // console.log("FILE: ", uploadFile)
 
-            await getDownloadURL(uploadFile.ref).then((downloadURL) => {
-                quizQuestionFileUrl = downloadURL;
-                console.log("URL: ", quizQuestionFileUrl)
-            })
+                await getDownloadURL(uploadFile.ref).then((downloadURL) => {
+                    quizQuestionFileUrl = downloadURL;
+                    // console.log("URL: ", quizQuestionFileUrl)
+                })
+            }
+
+            const updatedQuizQuestion = {
+                'question': question,
+                'option1': option1,
+                'option2': option2,
+                'option3': option3,
+                'option4': option4,
+                'correctOption': correctOption,
+                'explanation': explanation,
+                'questionFile': quizQuestionFileUrl
+            }
+
+            // console.log('Updated Quiz Question: ', updatedQuizQuestion)
+
+            dispatch(editQuizQuestion(courseId, std, quizIndex, updatedQuizQuestion, quesNumber))
+            setTimeout(() => {
+                toast.success('Question Edited Successfully!!', toastPropertyProps)
+            }, 1000)
+        } catch (error) {
+            toast.error('Something Went Wrong!!!', toastPropertyProps)
         }
-
-        const updatedQuizQuestion = {
-            'question': question,
-            'option1': option1,
-            'option2': option2,
-            'option3': option3,
-            'option4': option4,
-            'correctOption': correctOption,
-            'explanation': explanation,
-            'questionFile': quizQuestionFileUrl
-        }
-
-        // console.log('Updated Quiz Question: ', updatedQuizQuestion)
-
-        dispatch(editQuizQuestion(courseId, std, quizIndex, updatedQuizQuestion, quesNumber))
-        setTimeout(() => {
-            setLoading(false)
-        }, 1000)
     }
 
     // console.log('Option3: ', option3)
@@ -126,7 +136,7 @@ function TeacherIndividualQuiz() {
                 loading ?
                     <Loader />
                     :
-                    quizQuestions.length !== 0
+                    Object.keys(quizData).length !== 0
                     &&
                     (
                         <div>
@@ -137,7 +147,7 @@ function TeacherIndividualQuiz() {
                                     <span className='text-dark me-2'>Quiz: </span>
                                     <span style={{
                                         color: '#695cfe'
-                                    }}>{topic}</span>
+                                    }}>{quizData.topic}</span>
                                 </h2>
                             </div>
                             <div className='container w-50 mt-5'>
@@ -162,7 +172,7 @@ function TeacherIndividualQuiz() {
                                                     isEdited ?
                                                         question
                                                         :
-                                                        quizQuestions[quesNumber - 1].question
+                                                        quizData.questions[quesNumber - 1].question
 
                                                 }
                                                 disabled={!isEdited}
@@ -177,7 +187,7 @@ function TeacherIndividualQuiz() {
                                                 value={
                                                     isEdited
                                                         ? option1
-                                                        : quizQuestions[quesNumber - 1].option1
+                                                        : quizData.questions[quesNumber - 1].option1
 
                                                 }
                                                 required
@@ -192,7 +202,7 @@ function TeacherIndividualQuiz() {
                                                 value={
                                                     isEdited
                                                         ? option2
-                                                        : quizQuestions[quesNumber - 1].option2
+                                                        : quizData.questions[quesNumber - 1].option2
                                                 }
                                                 required
                                                 disabled={!isEdited}
@@ -206,7 +216,7 @@ function TeacherIndividualQuiz() {
                                                 value={
                                                     isEdited
                                                         ? option3
-                                                        : quizQuestions[quesNumber - 1].option3
+                                                        : quizData.questions[quesNumber - 1].option3
                                                 }
                                                 required
                                                 disabled={!isEdited}
@@ -220,7 +230,7 @@ function TeacherIndividualQuiz() {
                                                 value={
                                                     isEdited
                                                         ? option4
-                                                        : quizQuestions[quesNumber - 1].option4
+                                                        : quizData.questions[quesNumber - 1].option4
                                                 }
                                                 required
                                                 disabled={!isEdited}
@@ -235,12 +245,12 @@ function TeacherIndividualQuiz() {
                                                 value={
                                                     isEdited
                                                         ? correctOption
-                                                        : quizQuestions[quesNumber - 1].correctOption
+                                                        : quizData.questions[quesNumber - 1].correctOption
                                                 }
                                                 disabled={!isEdited}
                                                 onChange={(e) => setCorrectOption(e.target.value)}
                                             >
-                                                <option value="" disabled hidden selected>Correct Option</option>
+                                                <option value="" disabled hidden>Correct Option</option>
                                                 <option value="1">1</option>
                                                 <option value="2">2</option>
                                                 <option value="3">3</option>
@@ -248,7 +258,7 @@ function TeacherIndividualQuiz() {
                                             </Form.Control>
                                         </Form.Group>
                                         {
-                                            quizQuestions[quesNumber - 1].questionFile === ''
+                                            quizData.questions[quesNumber - 1].questionFile === ''
                                                 ?
                                                 <p style={{
                                                     fontSize: '15px',
@@ -261,7 +271,7 @@ function TeacherIndividualQuiz() {
                                                         height="200px"
                                                         width="200px"
                                                         className='my-2'
-                                                        src={`${quizQuestions[quesNumber - 1].questionFile}`}
+                                                        src={`${quizData.questions[quesNumber - 1].questionFile}`}
                                                     />
                                                 </div>
 
@@ -291,7 +301,7 @@ function TeacherIndividualQuiz() {
                                                 value={
                                                     isEdited
                                                         ? explanation
-                                                        : quizQuestions[quesNumber - 1].explanation
+                                                        : quizData.questions[quesNumber - 1].explanation
                                                 }
                                                 disabled={!isEdited}
                                                 onChange={(e) => setExplanation(e.target.value)}
@@ -331,7 +341,7 @@ function TeacherIndividualQuiz() {
                             </div>
                             {
 
-                                quesNumber > 1 && quesNumber < quizQuestions.length &&
+                                quesNumber > 1 && quesNumber < quizData.questions.length &&
                                 <div className='d-flex justify-content-between'>
                                     <Button
                                         type='button'
@@ -366,7 +376,7 @@ function TeacherIndividualQuiz() {
                                 </div>
                             }
                             {
-                                quesNumber === quizQuestions.length &&
+                                quesNumber === quizData.questions.length &&
                                 <div className='d-flex justify-content-between'>
                                     <Button
                                         type='submit'
@@ -382,6 +392,9 @@ function TeacherIndividualQuiz() {
                         </div>
 
                     )}
+            <ToastContainer style={{
+                fontSize: '15px'
+            }} />
         </div>
     )
 }

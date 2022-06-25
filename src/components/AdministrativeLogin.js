@@ -14,7 +14,7 @@ function AdministrativeLogin() {
     // const [regn, setRegn] = useState('')
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
-    const [isLibrarian, setIsLibrarian] = useState(false)
+    const [isLibrarian, setIsLibrarian] = useState(true)
 
     const dispatch = useDispatch()
     const userLogin = useSelector(state => state.userLogin)
@@ -36,11 +36,15 @@ function AdministrativeLogin() {
 
     const navigate = useNavigate()
 
-    // console.log(email)
+    // console.log('isLibrarian: ', isLibrarian)
     useEffect(() => {
 
         if (userInfo) {
-            navigate('/librarian')
+            if (userInfo?.role === 'librarian') {
+                navigate('/librarian')
+            } else {
+                navigate('/office/fees')
+            }
         }
 
     }, [userInfo])
@@ -65,15 +69,15 @@ function AdministrativeLogin() {
                                 {/* <h1 className='fw-bold'>Login As...</h1> */}
                                 <div className='d-flex justify-content-between align-items-center'>
                                     <Button variant='outline-light' className="d-flex flex-column justify-content-center align-items-center mt-2"
-                                        active={!isLibrarian}
-                                        onClick={() => setIsLibrarian(false)}
+                                        active={isLibrarian}
+                                        onClick={() => setIsLibrarian(true)}
                                     >
                                         <Image src="Images/library-incharge-avatar.jpg" roundedCircle height="60px" width="60px" />
                                         <span className='text-secondary'>Librarian</span>
                                     </Button>
                                     <Button variant='outline-light d-flex flex-column justify-content-center align-items-center'
-                                        onClick={() => setIsLibrarian(true)}
-                                        active={isLibrarian}
+                                        onClick={() => setIsLibrarian(false)}
+                                        active={!isLibrarian}
                                     >
                                         <Image src="Images/teacher-avatar.png" roundedCircle height="60px" width="60px" />
                                         <span className='text-secondary'>Office</span>
@@ -117,10 +121,8 @@ function AdministrativeLogin() {
                                 </Form>
                             </div>
                         </Container>
-                        <div className='d-flex justify-content-end px-5 align-items-center'>
-                            {/* <h2 style={{
-                                fontSize: '15px'
-                            }}>Log in As</h2> */}
+                        {/* <div className='d-flex justify-content-end px-5 align-items-center'>
+
                             <Button
                                 variant='outline-success'
                                 onClick={() => navigate('/administrative-login')}
@@ -128,7 +130,7 @@ function AdministrativeLogin() {
                                 Administrative Login <i className="ms-2 fa-solid fa-users"></i>
                             </Button>
 
-                        </div>
+                        </div> */}
                     </>
                 )}
         </div>

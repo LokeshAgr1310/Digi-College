@@ -7,26 +7,37 @@ import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 
 import Loader from './Loading'
-import Message from './Message'
 import RegisterSteps from './RegisterSteps';
 import RegisterStudentPersonalDetails from './RegisterStudentPersonalDetails';
 import RegisterStudentEduDetails from './RegisterStudentEduDetails';
 import RegisterStudentCommDetails from './RegisterStudentCommDetails';
+import { toast, ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css';
+import { collection, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../firebase-config';
 
 // TODO: Password Checker
+// TODO: Back Button in required postion
 
 function Register() {
 
+    const toastPropertyProps = {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+    }
+
     const params = useParams()
 
-    // console.log(params.step)
+    const personalDetails = JSON.parse(localStorage.getItem('PersonalDetails'))
 
     const [password, setPassword] = useState('')
     const [confPassword, setConfPassword] = useState('')
     const [isChecked, setIsChecked] = useState(false)
-    const [message, setMessage] = useState('')
-
-    // const tabs = ['Personal Details', 'Communication Details', 'Educational Details']
 
     const navigate = useNavigate()
 
@@ -37,37 +48,43 @@ function Register() {
     const { error, loading } = userRegister
     const { userInfo } = userLogin;
 
-    const registerStudent = () => {
-        console.log('FILLED')
+    const registerStudent = async (e) => {
+        e.preventDefault()
+        try {
+            // let userInfoData = []
+            if (password !== confPassword) {
+                toast.error("Password didn't match!!", toastPropertyProps)
+            } else {
 
-        if (password === confPassword) {
-            dispatch(register(password))
+                const q = query(collection(db, 'users'), where('reg-no', "==", personalDetails['My-Details'].regn))
+                const data = await getDocs(q)
 
-        } else {
-            setMessage("Password didn't match!!")
+                if (data.docs.length === 0) {
+                    dispatch(register(password))
+                } else {
+                    toast.error('Already Have an Account! Please Login', toastPropertyProps)
+                }
+            }
+
+        } catch (error) {
+            toast.error('Something Went Wrong!', toastPropertyProps)
         }
 
     }
 
     const prevButtonHandler = () => {
-
         navigate('/register/step=3')
 
     }
 
-    // console.log(email)
     useEffect(() => {
 
         if (userInfo) {
-            navigate('/home')
-            // dispatch(registeredOnAttendanceSheet())
+            toast.success("Registered Successfully!!", toastPropertyProps)
+            navigate('/student-dashboard')
         }
 
     }, [userInfo])
-
-    // console.log("COURSE: ", course)
-    // console.log("dob: ", dob)
-    // console.log("sem: ", semester)
 
     return (
         <div style={{
@@ -86,15 +103,22 @@ function Register() {
                             height: 'calc(100vh - 61px)',
                             marginTop: '30px'
                         }}>
-                        <h2 className='fw-bold text-center'>Register Now!!</h2>
+                        <div className='d-flex align-items-center justify-content-center'>
+                            <Button
+                                onClick={() => navigate(-1)}
+                                className='me-3'
+                                size="sm"
+                            >
+                                <i className="fa-solid fa-angles-left"></i>
+                            </Button>
+                            <h2 className='fw-bold text-center'>Register Now!!</h2>
+                        </div>
                         <div
                             style={{
                                 // boxShadow: '5px -6px 10px'
                             }}
                             className='px-5 py-2'
                         >
-                            {error && <Message variant="danger">{error}</Message>}
-                            {message && <Message variant="info">{message}</Message>}
                             {/* <RegisterSteps step1 /> */}
 
                             {
@@ -176,6 +200,9 @@ function Register() {
                         </div>
                     </Container>
                 )}
+            <ToastContainer style={{
+                fontSize: '15px'
+            }} />
         </div>
     );
 }

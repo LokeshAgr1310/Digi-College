@@ -3,33 +3,41 @@ import { Container, Table, OverlayTrigger, Tooltip, Button } from 'react-bootstr
 import { useSelector, useDispatch } from 'react-redux';
 import { getUserDetails } from '../actions/userActions'
 import { Link } from 'react-router-dom'
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from '../firebase-config'
 
 
 function Results() {
 
     const { userProfileInfo } = useSelector(state => state.userLogin)
+    const [subjectName, setSubjectName] = useState({})
 
-    const subjects = Object.keys(userProfileInfo.subject)
-    console.log('SUBJECTS: ', subjects)
+    const subjects = Object.keys(userProfileInfo.subject).sort()
+    // console.log('SUBJECTS: ', subjects)
 
 
 
     const dispatch = useDispatch()
 
-    const refreshAttendanceHandler = () => {
-        dispatch(getUserDetails())
-        // window.location.reload()
+    // const refreshAttendanceHandler = () => {
+    //     dispatch(getUserDetails())
+    //     // window.location.reload()
+    // }
+    const courseId = `${userProfileInfo.course}-${userProfileInfo.semester}`
+
+    const getSubjectName = async () => {
+        const data = await getDoc(doc(db, 'subject_code', courseId))
+        setSubjectName(data.data())
     }
+
 
     useEffect(() => {
 
-        // setSemesterResult(subjects.forEach((sub) => {
-        //     userProfileInfo.subject[sub].results['PUT']
-        // })
+        getSubjectName()
 
     }, [])
 
-    console.log('SEMESTER: ', Object.keys(userProfileInfo.semesterResults))
+    // console.log('SEMESTER: ', Object.keys(userProfileInfo.semesterResults))
 
     return (
         <div className='text'>
@@ -38,7 +46,7 @@ function Results() {
                 <div className='d-flex flex-column'>
                     <div className='d-flex justify-content-center'>
                         <h2 className='me-3'>Your Results</h2>
-                        <OverlayTrigger
+                        {/* <OverlayTrigger
                             placement="right"
                             overlay={
                                 <Tooltip id={`tooltip-right`}>
@@ -49,14 +57,14 @@ function Results() {
                             <Button variant="secondary" onClick={() => refreshAttendanceHandler()}>
                                 <i className='bx bx-refresh'></i>
                             </Button>
-                        </OverlayTrigger>
+                        </OverlayTrigger> */}
 
                     </div>
-                    <p style={{
+                    {/* <p style={{
                         fontSize: '15px'
                     }}>
                         <span className='text-danger'>*</span> Click on refresh button to get the latest Data
-                    </p>
+                    </p> */}
                     {/* Sessional results */}
 
                     <div>
@@ -81,10 +89,15 @@ function Results() {
                             <tbody>
                                 {subjects.map((sub, index) => (
                                     <tr key={index} className='text-center'>
-                                        <td>{index + 1}</td>
                                         <td>{sub}</td>
-                                        <td>{userProfileInfo.subject[sub].results['sessional'].score ? userProfileInfo.subject[sub].results['sessional'].score : '-'}</td>
-                                        <td>{(userProfileInfo.subject[sub].results['sessional'].status !== null) ? ((userProfileInfo.subject[sub].results['sessional']?.status === true) ? <i className='bx bx-check-circle text-success'></i> : <i className='bx bx-x-circle text-danger' ></i>) : '-'}</td>
+                                        <td>
+                                            {
+                                                Object.keys(subjectName).length !== 0
+                                                && subjectName[sub]
+                                            }
+                                        </td>
+                                        <td>{userProfileInfo.subject[sub]['sessional'].score ? userProfileInfo.subject[sub]['sessional'].score : '-'}</td>
+                                        <td>{(userProfileInfo.subject[sub]['sessional'].status !== null) ? ((userProfileInfo.subject[sub]['sessional']?.status === true) ? <i className='bx bx-check-circle text-success'></i> : <i className='bx bx-x-circle text-danger' ></i>) : '-'}</td>
                                     </tr>
 
                                 ))}
@@ -116,10 +129,15 @@ function Results() {
                             <tbody>
                                 {subjects.map((sub, index) => (
                                     <tr key={index} className='text-center'>
-                                        <td>{index + 1}</td>
                                         <td>{sub}</td>
-                                        <td>{userProfileInfo.subject[sub].results['PUT'].score ? userProfileInfo.subject[sub].results['PUT'].score : '-'}</td>
-                                        <td>{(userProfileInfo.subject[sub].results['PUT']?.status !== null) ? ((userProfileInfo.subject[sub].results['PUT']?.status === true) ? <i className='bx bx-check-circle text-success'></i> : <i className='bx bx-x-circle text-danger' ></i>) : '-'}</td>
+                                        <td>
+                                            {
+                                                Object.keys(subjectName).length !== 0
+                                                && subjectName[sub]
+                                            }
+                                        </td>
+                                        <td>{userProfileInfo.subject[sub]['PUT'].score ? userProfileInfo.subject[sub]['PUT'].score : '-'}</td>
+                                        <td>{(userProfileInfo.subject[sub]['PUT']?.status !== null) ? ((userProfileInfo.subject[sub]['PUT']?.status === true) ? <i className='bx bx-check-circle text-success'></i> : <i className='bx bx-x-circle text-danger' ></i>) : '-'}</td>
                                     </tr>
 
                                 ))}

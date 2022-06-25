@@ -10,7 +10,7 @@ function Syllabus() {
 
     const { userProfileInfo } = useSelector(state => state.userLogin)
 
-    const subjects = Object.keys(userProfileInfo.subject)
+    const subjects = Object.keys(userProfileInfo.subject).sort()
     console.log('SUBJECTS: ', subjects)
 
     const [activeTab, setActiveTab] = useState(subjects[1])

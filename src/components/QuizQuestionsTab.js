@@ -7,16 +7,23 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Message from './Message'
 import { sendQuizToStudents } from '../actions/teacherActions'
 import Loader from './Loading'
+import { toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css';
 
 
 function QuizQuestionsTab({ totalQuestions, quizIndex, courseId, std }) {
 
-    const params = useParams()
-    // // const quesNumber = parseInt(params.question)
-    // const std = params.classname
-    const topic = params.topic
+    // const params = useParams()
+    const toastPropertyProps = {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+    }
 
-    // const navigate = useNavigate()
     const quizQuestion = localStorage.getItem('quiz-question') ? JSON.parse(localStorage.getItem('quiz-question')) : []
 
     const [quesNumber, setQuesNumber] = useState(quizQuestion.length + 1)
@@ -29,7 +36,6 @@ function QuizQuestionsTab({ totalQuestions, quizIndex, courseId, std }) {
     const [correctOption, setCorrectOption] = useState('')
     const [explanation, setExplanation] = useState('')
     const [questionFile, setQuestionFile] = useState([])
-    const [message, setMessage] = useState('')
     const [loading, setLoading] = useState(false)
 
     const dispatch = useDispatch()
@@ -37,59 +43,68 @@ function QuizQuestionsTab({ totalQuestions, quizIndex, courseId, std }) {
 
     const addQuestionToLocalStorage = async (e) => {
         e.preventDefault()
-        let quizQuestionFileUrl = '';
-        if (questionFile.length !== 0) {
-            const storage = getStorage()
-            const fileRef = ref(storage, `Quiz/${courseId}/${std}/${topic}/question/${quesNumber}/${questionFile[0].name}`);
+        try {
 
-            const uploadFile = await uploadBytes(fileRef, questionFile[0])
-            console.log("FILE: ", uploadFile)
+            let quizQuestionFileUrl = '';
+            if (questionFile.length !== 0) {
+                const storage = getStorage()
+                const fileRef = ref(storage, `Quiz/${courseId}/${std}/${quizIndex}/question/${quesNumber}/${questionFile[0].name}`);
 
-            await getDownloadURL(uploadFile.ref).then((downloadURL) => {
-                quizQuestionFileUrl = downloadURL;
-                console.log("URL: ", quizQuestionFileUrl)
-            })
+                const uploadFile = await uploadBytes(fileRef, questionFile[0])
+                // console.log("FILE: ", uploadFile)
+
+                await getDownloadURL(uploadFile.ref).then((downloadURL) => {
+                    quizQuestionFileUrl = downloadURL;
+                    // console.log("URL: ", quizQuestionFileUrl)
+                })
+            }
+            const questionData = {
+                'question': question,
+                'option1': option1,
+                'option2': option2,
+                'option3': option3,
+                'option4': option4,
+                'correctOption': correctOption,
+                'explanation': explanation,
+                'questionFile': quizQuestionFileUrl
+            }
+            quizQuestion[quesNumber - 1] = questionData
+            setQuesNumber(val => val + 1)
+            setQuestion('')
+            setOption1('')
+            setOption2('')
+            setOption3('')
+            setOption4('')
+            setCorrectOption('')
+            setExplanation('')
+            setQuestionFile([])
+
+            localStorage.setItem('quiz-question', JSON.stringify(quizQuestion))
+            toast.success(`Question - ${quesNumber} is succesfully added!!`, toastPropertyProps)
+        } catch (error) {
+            toast.error("Something Went Wrong!!!", toastPropertyProps)
         }
-        const questionData = {
-            'question': question,
-            'option1': option1,
-            'option2': option2,
-            'option3': option3,
-            'option4': option4,
-            'correctOption': correctOption,
-            'explanation': explanation,
-            'questionFile': quizQuestionFileUrl
-        }
-        quizQuestion[quesNumber - 1] = questionData
-        setQuesNumber(val => val + 1)
-        setQuestion('')
-        setOption1('')
-        setOption2('')
-        setOption3('')
-        setOption4('')
-        setCorrectOption('')
-        setExplanation('')
-        setQuestionFile([])
-
-        localStorage.setItem('quiz-question', JSON.stringify(quizQuestion))
 
     }
 
     const sendQuizHandler = () => {
-        setLoading(true)
-        dispatch(sendQuizToStudents(courseId, std, quizIndex, topic.split('-').join(' ')))
-        setTimeout(() => {
-            setLoading(false)
-            navigate(`/class/${std.split(' ').join('-')}`)
-        }, 2000)
+        try {
+            dispatch(sendQuizToStudents(courseId, std, quizIndex))
+            setTimeout(() => {
+                toast.success('Quiz sent successfully!!', toastPropertyProps)
+            }, 1000)
+            navigate(`/class/${std}?tab=2`)
+        } catch (error) {
+            toast.error('Something Went Wrong!!!', toastPropertyProps)
+        }
     }
 
-    console.log('Total: ', totalQuestions)
-    console.log('quesNumber: ', quesNumber)
+    // console.log('Total: ', totalQuestions)
+    // console.log('quesNumber: ', quesNumber)
 
     useEffect(() => {
 
-    }, [quesNumber, quizQuestion, message, loading])
+    }, [quesNumber, quizQuestion])
 
     return (
         <div className='container mt-4 w-50'
@@ -111,7 +126,7 @@ function QuizQuestionsTab({ totalQuestions, quizIndex, courseId, std }) {
                                 <h3 style={{
                                     fontSize: '18px',
                                     marginBottom: '10px'
-                                }}>All the question are saved succesfully!! Click on send button to send the Quiz to Students...</h3>
+                                }}>All the question are added succesfully!! Click on send button to send the Quiz to Students...</h3>
                                 <Button
                                     variant='primary'
                                     className='btn-block'
@@ -127,7 +142,8 @@ function QuizQuestionsTab({ totalQuestions, quizIndex, courseId, std }) {
                                     textAlign: 'center',
                                     fontSize: '20px',
                                 }}>Question {quesNumber}</h4>
-                                {message.length !== 0 && <Message variant="info">{message}</Message>}
+                                {/* {message.length !== 0 && <Message variant="info">{message}</Message>} */}
+
                                 <Form onSubmit={addQuestionToLocalStorage}>
                                     <Form.Group className="mb-3" controlId='question'>
                                         <Form.Control
@@ -187,7 +203,7 @@ function QuizQuestionsTab({ totalQuestions, quizIndex, courseId, std }) {
                                             value={correctOption}
                                             onChange={(e) => setCorrectOption(e.target.value)}
                                         >
-                                            <option value="" disabled hidden selected>Correct Option</option>
+                                            <option value="" disabled hidden>Correct Option</option>
                                             <option value="1">1</option>
                                             <option value="2">2</option>
                                             <option value="3">3</option>

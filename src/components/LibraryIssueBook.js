@@ -97,7 +97,7 @@ function LibraryIssueBook({ toastPropertyProps }) {
     }
     const dispatch = useDispatch()
 
-    console.log('COndition', isStdDataShow)
+    // console.log('COndition', isStdDataShow)
 
     const issueBookHandler = async (e) => {
         e.preventDefault()

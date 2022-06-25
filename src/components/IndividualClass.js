@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useParams } from 'react-router-dom'
+import { useParams, useLocation, Link } from 'react-router-dom'
 import StudentAssignment from './StudentAssignment'
 import TeacherAssignment from './TeacherAssignment'
 import { getUserDetails } from '../actions/userActions'
@@ -9,25 +9,62 @@ import Notes from './Notes'
 import AllClassmates from './AllClassmates'
 import TeacherQuiz from './TeacherQuiz'
 import StudentQuiz from './StudentQuiz'
+import { getDoc, doc } from 'firebase/firestore'
+import { db } from '../firebase-config'
 
 // TODO: Filter for pending assignment, quiz in the class
 
 function IndividualClass() {
 
-    const params = useParams()
-    const std = params.classname.split('-').join(' ')
-    // const tab = params.tab
+    const { userProfileInfo, userInfo } = useSelector(state => state.userLogin)
 
-    const { userInfo } = useSelector(state => state.userLogin)
+    const params = useParams()
+    const { search } = useLocation()
+    const std = params.classname
+    const activeTab = search.split('=')[1]
+
+    // const tab = params.tab
+    // console.log('params:', params)
+    // console.log('search:', search)
+    // console.log('active: ', activeTab)
+
+    const [subjectName, setSubjectName] = useState('')
+
+    let courseId = ""
+    if (userInfo?.role === 'teacher') {
+        Object.keys(userProfileInfo.subject).forEach((key) => {
+            if (std === userProfileInfo.subject[key]) {
+                courseId = key
+            }
+        })
+    } else {
+        courseId = `${userProfileInfo.course}-${userProfileInfo.semester}`
+    }
+
+    const getSubjectName = async () => {
+
+        const data = await getDoc(doc(db, 'subject_code', courseId))
+        setSubjectName(data.data()[std])
+    }
+
 
     const tabs = ['Assignment', 'Quiz', 'Notes', 'Lectures', `${userInfo.role === 'student' ? 'Classmates' : 'Students'}`]
-    const [activeTab, setActiveTab] = useState(tabs[0])
+    // const [activeTab, setActiveTab] = useState(tabs[0])
 
     const dispatch = useDispatch()
 
-    const refreshClassData = () => {
-        dispatch(getUserDetails())
-    }
+    // const refreshClassData = () => {
+    //     dispatch(getUserDetails())
+    // }
+
+    useEffect(() => {
+
+        getSubjectName()
+    }, [])
+
+    useEffect(() => {
+
+    }, [activeTab, search])
 
 
     return (
@@ -41,8 +78,8 @@ function IndividualClass() {
                         fontWeight: 'bolder'
                     }}
                         className='me-2'
-                    >{std}</h2>
-                    <OverlayTrigger
+                    >{subjectName} <span style={{ fontSize: '15px' }}>({std})</span></h2>
+                    {/* <OverlayTrigger
                         placement="right"
                         overlay={
                             <Tooltip id={`tooltip-right`}>
@@ -53,27 +90,27 @@ function IndividualClass() {
                         <Button variant="secondary" onClick={() => refreshClassData()}>
                             <i className='bx bx-refresh'></i>
                         </Button>
-                    </OverlayTrigger>
+                    </OverlayTrigger> */}
                 </div>
 
-                <p style={{
+                {/* <p style={{
                     fontSize: '15px'
                 }}>
                     <span className='text-danger'>*</span> Click on refresh button to get the latest Data
-                </p>
+                </p> */}
 
                 <ul className="nav subject-tab my-3" style={{
                     // borderBottom: '1px solid #158cba',
                 }}>
                     {tabs.map((tab, index) => (
                         <li className="nav-item me-2" key={index}>
-                            <a
-                                className={`nav-link ${(activeTab === tab) ? "active" : ""}`}
-                                href="#"
-                                onClick={() => setActiveTab(tab)}
+                            <Link
+                                className={`nav-link ${(index + 1 === parseInt(activeTab)) ? "active" : ""}`}
+                                to={`?tab=${index + 1}`}
+                            // onClick={() => setActiveTab(tab)}
                             >
                                 {tab}
-                            </a>
+                            </Link>
                         </li>
 
                     ))}
@@ -83,31 +120,31 @@ function IndividualClass() {
             </div>
             <div>
                 {
-                    userInfo.role === 'student' ?
+                    userInfo?.role === 'student' ?
                         (
-                            activeTab === 'Assignment'
+                            activeTab === '1'
                                 ? <StudentAssignment std={std} />
-                                : activeTab === 'Notes'
+                                : activeTab === '3'
                                     ? <Notes std={std} />
-                                    : activeTab === 'Classmates'
+                                    : activeTab === '5'
                                         ? <AllClassmates std={std} />
-                                        : activeTab === 'Quiz' ?
+                                        : activeTab === '2' ?
                                             <StudentQuiz std={std} />
-                                            : activeTab === 'Lectures' &&
+                                            : activeTab === '4' &&
                                             <div>
                                                 Coming Soon....
                                             </div>
                         ) :
                         (
-                            activeTab === 'Assignment'
+                            activeTab === '1'
                                 ? <TeacherAssignment std={std} />
-                                : activeTab === 'Notes'
+                                : activeTab === '3'
                                     ? <Notes std={std} />
-                                    : activeTab === 'Students'
+                                    : activeTab === '5'
                                         ? <AllClassmates std={std} />
-                                        : activeTab === 'Quiz' ?
+                                        : activeTab === '2' ?
                                             <TeacherQuiz std={std} />
-                                            : activeTab === 'Lectures' &&
+                                            : activeTab === '4' &&
                                             <div>
                                                 Coming Soon....
                                             </div>

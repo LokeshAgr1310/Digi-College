@@ -8,11 +8,22 @@ import { onSnapshot, doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase-config'
 import { quizQuestionAction } from '../actions/studentActions'
 import { QUIZ_QUESTION_RESET } from '../constants/studentConstants'
+import { toast, ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css';
 
 // TODO: Submitted Student List with their corresponding score in the teacher database...
 
 function StudentQuiz({ std }) {
 
+    const toastPropertyProps = {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+    }
     const { userProfileInfo } = useSelector(state => state.userLogin)
 
     const [allQuizzes, setAllQuizzes] = useState([])
@@ -23,7 +34,7 @@ function StudentQuiz({ std }) {
     const getQuizDataDetails = async () => {
 
         onSnapshot(doc(db, 'quiz', courseId), (doc) => {
-            setAllQuizzes(doc.data().quiz[std])
+            setAllQuizzes(doc.data()[std].quiz)
         })
     }
 
@@ -32,7 +43,7 @@ function StudentQuiz({ std }) {
 
     useEffect(() => {
         getQuizDataDetails()
-        dispatch({ type: QUIZ_QUESTION_RESET })
+        // dispatch({ type: QUIZ_QUESTION_RESET })
         localStorage.removeItem('Quiz-Question')
     }, [])
 
@@ -40,7 +51,7 @@ function StudentQuiz({ std }) {
         <div className='container'>
             {loading
                 ? <Loader />
-                : allQuizzes.length !== 0 && allQuizzes.length === userProfileInfo.Quiz[std].length
+                : allQuizzes.length !== 0
                     ?
                     (
                         <>
@@ -85,14 +96,14 @@ function StudentQuiz({ std }) {
                                                 }}>{quiz.postedOn}</span>
 
                                                 <div className='mt-2'>
-                                                    {userProfileInfo.Quiz[std][index].status === 'Not Attempted'
+                                                    {!Object.keys(quiz.students[userProfileInfo.section].submitted).includes(userProfileInfo.id)
                                                         ?
                                                         <Button
                                                             variant='outline-success'
                                                             onClick={() => {
                                                                 if (window.confirm('Do you want to start the Quiz. Only One attempt is Allowed. Disclamer: Do not press back button in between the Quiz')) {
                                                                     dispatch(quizQuestionAction(std, index))
-                                                                    navigate(`/class/${std.split(' ').join('-')}/quiz/${quiz.topic.split(' ').join('-')}`)
+                                                                    navigate(`/class/${std}/quiz/${index + 1}`)
                                                                 }
                                                             }}
                                                         >
@@ -101,10 +112,12 @@ function StudentQuiz({ std }) {
                                                         <div className='d-flex flex-column justify-content-center align-items-center'>
                                                             <h5 style={{
                                                                 fontSize: '15px'
-                                                            }} className='text-dark'>Score: <span className='fw-bolder text-dark fw-bolder'>{userProfileInfo.Quiz[std][index].score}/{quiz.totalQuestions}</span></h5>
+                                                            }} className='text-dark'>Score: <span className='fw-bolder text-dark fw-bolder'>{
+                                                                quiz.students[userProfileInfo.section].submitted[userProfileInfo.id].score
+                                                            }/{quiz.totalQuestions}</span></h5>
                                                             <h5 style={{
                                                                 fontSize: '15px'
-                                                            }} className='text-dark'>Submitted On: <span className='fw-bolder'>{userProfileInfo.Quiz[std][index].submittedOn}</span></h5>
+                                                            }} className='text-dark'>Submitted On: <span className='fw-bolder'>{quiz.students[userProfileInfo.section].submitted[userProfileInfo.id].submittedOn}</span></h5>
 
                                                         </div>
                                                     }
@@ -123,6 +136,9 @@ function StudentQuiz({ std }) {
                         }}>Click on Refresh Button to Fetch New Quizzes...</p>
                     )
             }
+            <ToastContainer style={{
+                fontSize: '15px'
+            }} />
         </div>
     )
 }

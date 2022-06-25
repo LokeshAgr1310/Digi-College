@@ -32,10 +32,10 @@ function Classes() {
 
             <div className='d-flex flex-wrap justify-content-center align-items-center'>
 
-                {Object.keys(classes).map((std, index) => (
+                {Object.keys(classes).sort().map((std, index) => (
 
                     <Link
-                        to={`/class/${std.split(' ').join('-')}`}
+                        to={`/class/${std}?tab=1`}
                         key={index}
                         style={{
                             textDecoration: 'none'
@@ -52,13 +52,16 @@ function Classes() {
                                 <Image
                                     src={classes[std].class_logo}
                                     alt='profile-photo'
-                                    minheight="100px"
+                                    height="200px"
                                     width="100%"
                                     style={{
                                         border: '1px solid #eee'
                                     }}
                                 />
-                                <h4 className='profile-name'>{std}</h4>
+                                <h4 className='profile-name text-center mt-3'>
+                                    {classes[std].name}
+
+                                </h4>
                                 <h5 className='proflie-post'>~ {classes[std].teacher}</h5>
                             </div>
                             {/* card middle */}

@@ -6,8 +6,20 @@ import { Link } from 'react-router-dom'
 import { Button, Form, Modal, Row, Col } from 'react-bootstrap'
 import { createAssignmentAction } from '../actions/teacherActions'
 import Loader from './Loading'
+import { toast, ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css';
 
 function TeacherAssignment({ std }) {
+
+    const toastPropertyProps = {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+    }
 
     const { userProfileInfo } = useSelector(state => state.userLogin)
     // const { loading } = useSelector(state => state.createAssignment)
@@ -26,16 +38,9 @@ function TeacherAssignment({ std }) {
         }
     })
 
-    // const getAssignmentDetails = async () => {
-    //     const assignData = await getDoc(doc(db, "classes", courseId))
-    //     setAssignmentData(assignData.data().class[std]['Assignment'].reverse())
-    // }
-
-
     useEffect(() => {
-        // getAssignmentDetails()
-        onSnapshot(doc(db, 'classes', courseId), (doc) => {
-            setAssignmentData(doc.data().class[std]['Assignment'].reverse())
+        onSnapshot(doc(db, 'assignment', courseId), (doc) => {
+            setAssignmentData(doc.data()[std]['assignment'].reverse())
         })
     }, [])
 
@@ -48,13 +53,14 @@ function TeacherAssignment({ std }) {
 
         const assignmentFormHandler = (e) => {
             e.preventDefault()
-            setLoading(true)
-            dispatch(createAssignmentAction(courseId, std, assignmentData.length, assignmentFile[0], assignmentLastDate, topic))
-            setTimeout(() => {
-                setLoading(false)
-            }, 2000)
-            setShowModal(false)
-            // getAssignmentDetails()
+            // setLoading(true)
+            try {
+                dispatch(createAssignmentAction(courseId, std, assignmentData.length, assignmentFile[0], assignmentLastDate, topic))
+                toast.success('Assignment Created Successfully!!', toastPropertyProps)
+                setShowModal(false)
+            } catch (error) {
+                toast.error('Something Went Wrong!', toastPropertyProps)
+            }
         }
         return (
             <Modal
@@ -130,7 +136,7 @@ function TeacherAssignment({ std }) {
                         assignmentData.map((assignment, index) => (
 
                             <Link
-                                to={`/class/${std.split(' ').join('-')}/assignment/${assignmentData.length - index}`}
+                                to={`/class/${std}/assignment/${assignmentData.length - index}?tab=1`}
                                 // to="#"
                                 key={index}
                                 style={{
@@ -201,6 +207,9 @@ function TeacherAssignment({ std }) {
                     Create Assignment <i className="fa-solid fa-circle-plus ms-1"></i>
                 </Button>
             </div>
+            <ToastContainer style={{
+                fontSize: '15px'
+            }} />
         </div>
     )
 }

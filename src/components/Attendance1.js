@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react'
-import { Container, Table, Button, OverlayTrigger, Tooltip, ListGroup, Modal } from 'react-bootstrap'
+import { Container, Table, Button, OverlayTrigger, Tooltip, ListGroup, Modal, Form } from 'react-bootstrap'
 import { useSelector, useDispatch } from 'react-redux'
 import { studentAttendanceAction, individualStudentAttendanceAction } from '../actions/attendanceActions'
 
 import { getUserDetails } from '../actions/userActions'
 import Loader from './Loading'
+import { getDoc, doc, onSnapshot } from 'firebase/firestore'
+import { db } from '../firebase-config'
+import { toast, ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css';
 
 
 // TODO: show message on success, error or provide some info
@@ -13,13 +17,23 @@ import Loader from './Loading'
 
 function Attendance1() {
 
+    const toastPropertyProps = {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+    }
+
     // const TableRow = null;
 
     const { userProfileInfo } = useSelector(state => state.userLogin)
-    const { loading: attendanceLoading } = useSelector(state => state.studentAttendance)
+    // const { loading: attendanceLoading } = useSelector(state => state.studentAttendance)
     const { loading } = useSelector(state => state.userProfileDetails)
 
-    const classes = Object.keys(userProfileInfo.attendance).sort()
+    const classes = Object.keys(userProfileInfo.subject).sort()
 
     const days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
@@ -28,6 +42,7 @@ function Attendance1() {
 
     const [activeClass, setActiveClass] = useState(classes[0])
     const [activeMonth, setActiveMonth] = useState(new Date().getMonth())
+    const [attendanceData, setAttendanceData] = useState({})
 
     const [istakeAttendance, setIsTakeAttendance] = useState(false)
 
@@ -37,10 +52,6 @@ function Attendance1() {
     const [selectDate, setSelectDate] = useState(new Date().getDate())
 
     const [modalShow, setModalShow] = useState(false)
-
-    // set the student detail of the individual student attendance
-
-    // for individual student attendance, the selected date
 
     const daysArray = []
 
@@ -57,21 +68,29 @@ function Attendance1() {
 
     }
 
-    // console.log('DAYS ARRAY: ', daysArray)
+    // for ordering the student id acc to name
+    const studentDetails = JSON.parse(localStorage.getItem('studentDetails'))[activeClass]
 
-    const studentDetailsUnOrdered = JSON.parse(localStorage.getItem('studentDetails'))[activeClass]
-    const studentDetails = studentDetailsUnOrdered.slice(0)
-    studentDetails.sort(function (a, b) {
-        let x = a.name.toLowerCase();
-        let y = b.name.toLowerCase();
+    // getting the section
+    const sections = Object.keys(studentDetails).sort()
+    const [activeSection, setActiveSection] = useState(sections[0])
+
+    // array of id's of active sections
+    const studentIdInOrder = Object.keys(studentDetails[activeSection]).slice(0)
+
+
+    // console.log('student1: ', studentIdInOrder)
+    studentIdInOrder.sort(function (a, b) {
+        let x = studentDetails[activeSection][a].name.toLowerCase();
+        let y = studentDetails[activeSection][b].name.toLowerCase();
         return x < y ? -1 : x > y ? 1 : 0;
     })
 
+    // console.log('student2:', studentIdInOrder)
     const [selectedStudents, setSelectedStudents] = useState([])
-    const [selectIndividualStudent, setSelectIndividualStudent] = useState({})
+    const [selectIndividualStudent, setSelectIndividualStudent] = useState('')
 
-    // for ordering the student details acc to name
-
+    // console.log('month', months[activeMonth])
     const dispatch = useDispatch()
 
     const takeAttendance = () => {
@@ -86,30 +105,31 @@ function Attendance1() {
         setSelectDate(new Date().getDate())
     }
 
-    const selectStudentAttendance = (student) => {
+    const selectStudentAttendance = (stdId) => {
 
-        if (!selectedStudents.some(obj => obj.id === student.id)) {
-            setSelectedStudents(list => [...list, student])
+        if (!selectedStudents.includes(stdId)) {
+            setSelectedStudents(list => [...list, stdId])
         } else {
-            setSelectedStudents(list => list.filter((item) => item.id !== student.id))
+            setSelectedStudents(list => list.filter((item) => item !== stdId))
         }
     }
 
     const confirmAttendance = () => {
 
-        if (selectedStudents.length !== 0) {
-            if (window.confirm('Do you want to update the attendance?')) {
-                setIsTakeAttendance(false)
-                dispatch(studentAttendanceAction(selectedStudents, activeClass, months[activeMonth], selectDate))
-                setSelectedStudents([])
-                setSelectDate(new Date().getDate())
-                console.log('Changed')
-
+        try {
+            if (selectedStudents.length !== 0) {
+                if (window.confirm('Do you want to update the attendance?')) {
+                    setIsTakeAttendance(false)
+                    dispatch(studentAttendanceAction(selectedStudents, activeClass, activeSection, months[activeMonth], selectDate, studentIdInOrder))
+                    toast.success('Attendance Updated Succesfully!', toastPropertyProps)
+                    setSelectedStudents([])
+                    setSelectDate(new Date().getDate())
+                }
             } else {
-                console.log('Try again later...')
+                toast.error('Please select atleast one student!', toastPropertyProps)
             }
-        } else {
-            setMessage('Please select atleast one student...')
+        } catch (error) {
+            toast.error('Something Went Wrong!', toastPropertyProps)
         }
 
 
@@ -122,12 +142,12 @@ function Attendance1() {
 
         // console.log('ACTIVE CLASS: ', activeClass)
         // console.log('STUDENT: ', studentDetails)
-    }, [activeClass, userProfileInfo, dispatch, activeMonth, studentDetails, istakeAttendance, selectedStudents, selectDate])
+    }, [activeMonth, studentDetails, studentIdInOrder, istakeAttendance, selectedStudents, selectDate])
 
-    const refreshAttendanceHandler = async () => {
-        dispatch(getUserDetails())
-        // window.location.reload()
-    }
+    // const refreshAttendanceHandler = async () => {
+    //     dispatch(getUserDetails())
+    //     // window.location.reload()
+    // }
 
     const prevMonthChange = () => {
         if (activeMonth > 0) {
@@ -141,8 +161,8 @@ function Attendance1() {
         }
     }
 
-    const clickOnIndividualEditButton = (student) => {
-        setSelectIndividualStudent(student)
+    const clickOnIndividualEditButton = (stdId) => {
+        setSelectIndividualStudent(stdId)
         setModalShow(true)
 
     }
@@ -151,18 +171,47 @@ function Attendance1() {
     // console.log('Individaul Student: ', selectIndividualStudent)
     // console.log('Modal: ', modalShow)
 
+    // console.log('attendance', attendanceData)
+
     function IndividualStudentAttendanceModal(props) {
 
-        const [selectedIndividualDate, setSelectedIndividualDate] = useState(new Date().getDate())
+        // set the student detail of the individual student attendance
 
-        const changeIndividualStudentAttendance = () => {
+        // for individual student attendance, the selected date
+        const [selectedIndividualDates, setSelectedIndividualDates] = useState([])
+        const [attend, setAttend] = useState(false)
 
-            const attend = document.getElementsByClassName('radio-button-present')[0].checked
+        useEffect(() => {
+            // console.log('Attend:', attend)
+            // console.log('is Attend: ', attendanceData[selectIndividualStudent][months[activeMonth]][selectedIndividualDate])
+        }, [attend, selectedIndividualDates])
 
-            dispatch(individualStudentAttendanceAction(selectIndividualStudent, activeClass, months[activeMonth], selectedIndividualDate, attend))
-            setSelectIndividualStudent({})
-            setModalShow(false)
+        console.log('Attend: ', attend)
+
+        const changeIndividualStudentAttendance = (e) => {
+            e.preventDefault()
+            try {
+                dispatch(individualStudentAttendanceAction(selectIndividualStudent, activeClass, activeSection, months[activeMonth], selectedIndividualDates, attend))
+                setSelectIndividualStudent('')
+                setModalShow(false)
+                toast.success('Attendance updated successfully!!', toastPropertyProps)
+            } catch (error) {
+                toast.error('Something Went Wrong!!', toastPropertyProps)
+            }
         }
+
+        const selectDays = (day) => {
+
+            if (selectedIndividualDates.includes(day)) {
+                setSelectedIndividualDates(list => list.filter((value) => value !== day))
+            } else {
+                setSelectedIndividualDates(list => [...list, day])
+            }
+        }
+
+        // console.log('Days: ', selectedIndividualDates)
+
+        // console.log('value:', document.getElementsByClassName('radio-button-present')[0].checked)
         return (
             <Modal
                 {...props}
@@ -172,7 +221,7 @@ function Attendance1() {
             >
                 <Modal.Header closeButton>
                     <Modal.Title id="contained-modal-title-vcenter">
-                        {selectIndividualStudent.name} ({selectIndividualStudent['reg-no']})
+                        {studentDetails[activeSection][selectIndividualStudent].name} ({studentDetails[activeSection][selectIndividualStudent].regn})
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
@@ -189,14 +238,14 @@ function Attendance1() {
                                                     day <= new Date().getDate() &&
                                                     <Button
                                                         key={day}
-                                                        variant={`${day === selectedIndividualDate ? 'warning' : 'light'}`}
+                                                        variant={`${selectedIndividualDates.includes(day) ? 'warning' : 'light'}`}
                                                         style={{
                                                             height: '40px',
                                                             width: '40px',
                                                             margin: '2px',
                                                         }}
-                                                        active={day === selectedIndividualDate}
-                                                        onClick={() => setSelectedIndividualDate(day)}
+                                                        active={selectedIndividualDates.includes(day)}
+                                                        onClick={() => selectDays(day)}
                                                     >{day}
                                                     </Button>
 
@@ -204,14 +253,14 @@ function Attendance1() {
                                                 : (
                                                     <Button
                                                         key={day}
-                                                        variant={`${day === selectedIndividualDate ? 'warning' : 'light'}`}
+                                                        variant={`${selectedIndividualDates.includes(day) ? 'warning' : 'light'}`}
                                                         style={{
                                                             height: '40px',
                                                             width: '40px',
                                                             margin: '2px',
                                                         }}
-                                                        active={day === selectedIndividualDate}
-                                                        onClick={() => setSelectedIndividualDate(day)}
+                                                        active={selectedIndividualDates.includes(day)}
+                                                        onClick={() => selectDays(day)}
                                                     >{day}
                                                     </Button>
                                                 )
@@ -221,38 +270,50 @@ function Attendance1() {
                             ))}
                         </div>
                     </div>
-                    {
-                        Object.keys(selectIndividualStudent).length !== 0 && (
-
-                            <div className='d-flex justify-content-center align-items-center my-2'>
-                                <input
-                                    type="radio"
-                                    name='attend'
-                                    className='radio-button-present'
-                                    value="present"
-                                    checked={userProfileInfo.attendance[activeClass][selectIndividualStudent?.id][months[activeMonth]][selectedIndividualDate]}
-                                />&nbsp; <span className='fw-bolder'>Present</span> &nbsp; &nbsp;&nbsp;&nbsp;
-                                <input
-                                    type="radio"
-                                    name='attend'
-                                    value="absent"
-                                    className='radio-button-absent'
-                                    checked={!userProfileInfo.attendance[activeClass][selectIndividualStudent?.id][months[activeMonth]][selectedIndividualDate]}
-                                />&nbsp; <span className='fw-bolder'>Absent</span>
-
-                            </div>
-                        )
-                    }
+                    {/* {
+                        selectIndividualStudent.length !== 0 && ( */}
+                    <Form onSubmit={changeIndividualStudentAttendance}
+                        className='d-flex flex-column my-4 align-items-center justify-content-center'
+                    >
+                        <Form.Group className='mb-3'>
+                            <Form.Check
+                                // inline
+                                label="Present"
+                                name="attendance"
+                                type="switch"
+                                checked={attend}
+                                onChange={() => attend ? setAttend(false) : setAttend(true)}
+                            // onCh
+                            />
+                        </Form.Group>
+                        <div>
+                            <Button variant="success" type='submit'>Save</Button>
+                        </div>
+                    </Form>
                 </Modal.Body>
-                <Modal.Footer>
-                    <Button onClick={props.onHide}>Close</Button>
-                    <Button onClick={() => changeIndividualStudentAttendance()} variant="success">Save</Button>
-                </Modal.Footer>
-            </Modal>
+            </Modal >
         );
     }
 
-    console.log('SELECTED: ', selectedStudents)
+    // console.log('SELECTED: ', selectedStudents)
+    // const individualAttendanceCondition = !modalShow && selectIndividualStudent.length === 0
+
+    useEffect(async () => {
+
+        // setAttendanceData({})
+        const data = await getDoc(doc(db, 'attendance', `${activeClass}-${activeSection}`))
+        onSnapshot(doc(db, 'attendance', `${activeClass}-${activeSection}`), (doc) => {
+            setAttendanceData(data.data()[userProfileInfo.subject[activeClass]])
+        })
+
+    }, [activeClass, activeSection, istakeAttendance])
+    // console.log('individual', selectIndividualStudent)
+
+    // console.log('Data:', attendanceData)
+
+    useEffect(() => {
+
+    }, [attendanceData])
 
     return (
         <div className='text'>
@@ -260,7 +321,7 @@ function Attendance1() {
             <Container className='my-3'>
                 <div className='d-flex justify-content-center'>
                     <h1 className='text-center me-2'>Student's Attendance</h1>
-                    <OverlayTrigger
+                    {/* <OverlayTrigger
                         placement="right"
                         overlay={
                             <Tooltip id={`tooltip-right`}>
@@ -271,14 +332,14 @@ function Attendance1() {
                         <Button variant="secondary" onClick={() => refreshAttendanceHandler()}>
                             <i className='bx bx-refresh'></i>
                         </Button>
-                    </OverlayTrigger>
+                    </OverlayTrigger> */}
 
                 </div>
-                <p style={{
+                {/* <p style={{
                     fontSize: '15px'
                 }}>
                     <span className='text-danger'>*</span> Click on refresh button to get the latest Data
-                </p>
+                </p> */}
                 {classes.length === 0 ?
                     <p className='text-center'
                         style={{
@@ -290,7 +351,7 @@ function Attendance1() {
 
                             <div className='d-flex flex-column justify-content-center align-items-center my-2'>
                                 <ul className="nav subject-tab mb-3">
-                                    {classes.map((std, index) => (
+                                    {classes?.map((std, index) => (
                                         <li className="nav-item" key={index}>
                                             <a
                                                 className={`nav-link ${(activeClass === std) ? "active" : ""}`}
@@ -300,6 +361,24 @@ function Attendance1() {
                                                 <div className='d-flex flex-column justify-conten-center align-items-center'>
                                                     <span>{std}</span>
                                                     <span className='text-center' style={{ fontSize: '12px' }}>({userProfileInfo.subject[std]})</span>
+                                                </div>
+                                            </a>
+                                        </li>
+
+                                    ))}
+
+                                </ul>
+                                <ul className="nav subject-tab mb-3">
+                                    {sections?.map((sec, index) => (
+                                        <li className="nav-item" key={index}>
+                                            <a
+                                                className={`nav-link ${(activeSection === sec) ? "active" : ""}`}
+                                                href="#"
+                                                onClick={() => setActiveSection(sec)}
+                                            >
+                                                <div className='d-flex flex-column justify-conten-center align-items-center'>
+                                                    <span>{sec}</span>
+                                                    {/* <span className='text-center' style={{ fontSize: '12px' }}>({userProfileInfo.subject[std]})</span> */}
                                                 </div>
                                             </a>
                                         </li>
@@ -350,20 +429,22 @@ function Attendance1() {
                                         </tr>
                                     </thead>
                                     {
-                                        studentDetails?.length !== 0 ?
+                                        studentIdInOrder?.length !== 0 && Object.keys(attendanceData).length !== 0 &&
+                                            studentIdInOrder.every(id => Object.keys(attendanceData).includes(id)) ?
                                             (
                                                 <tbody>
                                                     {
-                                                        studentDetails.map((student, index) => {
+                                                        studentIdInOrder?.map((stdId, index) => {
                                                             return (
                                                                 <tr key={index}>
                                                                     <td>{index + 1}</td>
-                                                                    <td>{student['reg-no']}</td>
-                                                                    <td>{student.name}</td>
+                                                                    <td>{studentDetails[activeSection][stdId].regn}</td>
+                                                                    <td>{studentDetails[activeSection][stdId].name}</td>
                                                                     {
-                                                                        Object.keys(userProfileInfo.attendance[activeClass][student?.id][months[activeMonth]]).map((day) => (
-                                                                            userProfileInfo.attendance[activeClass][student.id][months[activeMonth]][day] !== null ? (
-                                                                                userProfileInfo.attendance[activeClass][student.id][months[activeMonth]][day] === true ? (
+                                                                        // Object.keys(attendanceData).includes(stdId) &&
+                                                                        Object.keys(attendanceData[stdId][months[activeMonth]]).map((day) => (
+                                                                            attendanceData[stdId][months[activeMonth]][day] !== null ? (
+                                                                                attendanceData[stdId][months[activeMonth]][day] === true ? (
                                                                                     <td key={day}> <i className='bx bx-check-circle text-success'></i> </td>
                                                                                 ) : (
                                                                                     <td key={day}><i className='bx bx-x-circle text-danger' ></i></td>
@@ -380,7 +461,7 @@ function Attendance1() {
                                                                                 fontSize: '18px',
                                                                                 cursor: 'pointer'
                                                                             }}
-                                                                            onClick={() => clickOnIndividualEditButton(student)}
+                                                                            onClick={() => clickOnIndividualEditButton(stdId)}
                                                                         ></i>
                                                                     </td>
 
@@ -395,15 +476,17 @@ function Attendance1() {
                                             )
                                     }
                                 </Table>
-
-                                <IndividualStudentAttendanceModal
-                                    show={modalShow}
-                                    onHide={() => {
-                                        setModalShow(false)
-                                        setSelectIndividualStudent({})
-                                        // setSelectedIndividualDate(new Date().getDate())
-                                    }}
-                                />
+                                {
+                                    selectIndividualStudent.length !== 0 &&
+                                    <IndividualStudentAttendanceModal
+                                        show={modalShow}
+                                        onHide={() => {
+                                            setModalShow(false)
+                                            setSelectIndividualStudent('')
+                                            // setSelectedIndividualDate(new Date().getDate())
+                                        }}
+                                    />
+                                }
                                 {/* <div>{activeClass}</div> */}
                                 {
                                     !istakeAttendance ? (
@@ -469,16 +552,16 @@ function Attendance1() {
 
                             <p className='d-inline-block'>Select the present Student from the list</p>
                             <ListGroup as="ul">
-                                {studentDetails?.map((student, index) => (
+                                {studentIdInOrder?.map((stdId, index) => (
                                     <ListGroup.Item
                                         as="button"
                                         key={index}
 
-                                        className={`${selectedStudents.some(obj => obj.id === student.id) && 'bg-success'} mb-2`}
+                                        className={`${selectedStudents.includes(stdId) && 'bg-success'} mb-2`}
                                         // active={isStudentSelected}
-                                        onClick={() => selectStudentAttendance(student)}
+                                        onClick={() => selectStudentAttendance(stdId)}
                                     >
-                                        {student.name}
+                                        {studentDetails[activeSection][stdId].name}
                                         {/* {console.log('is Selected: ', selectedStudents.some(obj => obj.id === student.id))} */}
                                     </ListGroup.Item>
                                 ))}
@@ -490,6 +573,9 @@ function Attendance1() {
                     )
                 }
             </Container>
+            <ToastContainer style={{
+                fontSize: '15px'
+            }} />
         </div >
     )
 }

@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Button, Image } from 'react-bootstrap';
+import { Container, Form, Button, Image } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux'
 import { login } from '../actions/userActions'
 import { Link, useNavigate } from 'react-router-dom';
-
+import { toast, ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css';
 import Loader from './Loading'
-import Message from './Message'
+import { compare } from 'bcryptjs'
+import { getDocs, query, where, collection } from 'firebase/firestore'
+import { db } from '../firebase-config'
 
 
 // TODO: change the placeholder color
 function Login() {
+
+    const toastPropertyProps = {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+    }
 
     const [email, setEmail] = useState('')
     const [regn, setRegn] = useState('')
@@ -22,18 +35,67 @@ function Login() {
 
     const { error, loading, userInfo } = userLogin;
 
-    const submitHandler = (e) => {
+    const submitHandler = async (e) => {
         e.preventDefault();
-        console.log('Form submitted...')
+        try {
 
-        dispatch(login(isTeacher ? username : regn, email, password, isTeacher))
-        // console.log('Logged in...')
-        setEmail('')
+            // check if user is teacher or not...
+            if (isTeacher) {
+
+                // creating a query 
+                let userInfoData = []
+                let q = query(collection(db, 'teachers'), where('username', "==", username), where('email', '==', email), where('password', "==", password))
+
+                // get the users data according to query
+                const data = await getDocs(q);
+                userInfoData = data.docs.map((doc) => ({
+                    ...doc.data(),
+                    id: doc.id,
+
+                }))
+
+                // checking if login credentials is correct or not
+                if (userInfoData.length === 0) {
+                    toast.error('Incorrect Login Credentials', toastPropertyProps)
+                } else {
+                    dispatch(login(userInfoData[0].id, isTeacher))
+                }
+            } else {
+
+                // creating a query 
+                let userInfoData = []
+                let q = query(collection(db, 'users'), where('reg-no', "==", regn), where('email', '==', email))
+
+                // get the users data according to query
+                const data = await getDocs(q);
+                userInfoData = data.docs.map((doc) => ({
+                    ...doc.data(),
+                    id: doc.id,
+
+                }))
+
+                // checking if login credentials is correct or not
+                if (userInfoData.length === 0) {
+                    toast.error('Incorrect Login Credentials', toastPropertyProps)
+                } else {
+                    const checkPassword = await compare(password, userInfoData[0].password)
+
+                    // checking the password 
+                    if (checkPassword) {
+                        dispatch(login(userInfoData[0].id, isTeacher))
+                    } else {
+                        toast.error('Incorrect Password!!', toastPropertyProps)
+                    }
+                }
+            }
+
+        } catch (error) {
+            toast.error('Something went wrong!', toastPropertyProps)
+        }
         setRegn('')
-        setPassword('')
         setUsername('')
-        // history.push('/')
-        // window.location = '/home'
+        setPassword('')
+        setEmail('')
     }
 
     const navigate = useNavigate()
@@ -42,12 +104,16 @@ function Login() {
     useEffect(() => {
 
         if (userInfo) {
+            toast.success('Login Successfully', toastPropertyProps)
             if (userInfo.role === 'teacher') {
-                window.location = '/home1'
+                navigate('/teacher-dashboard')
             } else if (userInfo.role === 'librarian') {
-                window.location = '/librarian'
+                navigate('/librarian')
+            }
+            else if (userInfo?.role === 'office') {
+                navigate('/office/fees')
             } else {
-                window.location = '/home'
+                navigate('/student-dashboard')
             }
         }
 
@@ -62,7 +128,6 @@ function Login() {
                 :
                 (
                     <>
-
                         <Container style={{
                             display: 'grid',
                             'placeItems': 'center',
@@ -72,6 +137,13 @@ function Login() {
                             <div className='px-5 py-2 shadow-lg' style={{
                                 backgroundColor: '#ddd',
                             }}>
+                                <Button
+                                    onClick={() => navigate(-1)}
+                                    className='me-3'
+                                    size="sm"
+                                >
+                                    <i className="fa-solid fa-angles-left"></i>
+                                </Button>
                                 {/* <h1 className='fw-bold'>Login As...</h1> */}
                                 <div className='d-flex justify-content-between align-items-center'>
                                     <Button variant='outline-light' className="d-flex flex-column justify-content-center align-items-center mt-2"
@@ -89,9 +161,6 @@ function Login() {
                                         <span className='text-secondary'>Teacher</span>
                                     </Button>
                                 </div>
-
-
-                                {error && <Message variant="danger">{error}</Message>}
 
                                 <Form className='py-3' onSubmit={submitHandler}>
                                     <Form.Group className="mb-3" controlId={`${isTeacher ? 'username' : 'regn'}`}>
@@ -151,6 +220,9 @@ function Login() {
                         </div>
                     </>
                 )}
+            <ToastContainer style={{
+                fontSize: '15px'
+            }} />
         </div>
     );
 }

@@ -1,12 +1,19 @@
-import React, { useEffect } from 'react';
-import { Container, Row, Col } from 'react-bootstrap';
+import React, { useEffect, useState } from 'react';
+import { Container, Row, Col, OverlayTrigger } from 'react-bootstrap';
 import { useSelector } from 'react-redux'
 import '../styles/Navigation.css'
 import '../styles/dashboard.css'
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase-config';
 
 function Home() {
 
     const { userInfo, userProfileInfo } = useSelector(state => state.userLogin)
+
+    const [attended, setAttended] = useState(0)
+    const [totalLectures, setTotalLectures] = useState(0)
+    const [stdLibraryData, setLibraryData] = useState([])
+    const [feesData, setFeesData] = useState({})
 
     useEffect(() => {
 
@@ -15,34 +22,65 @@ function Home() {
         }
     }, [userInfo, userProfileInfo])
 
-    let totalLectures = 0;
-    // let clgOpenInAMonth = 0;
-    let attended = 0;
+    const courseId = `${userProfileInfo.course}-${userProfileInfo.semester}`
 
-    const subjects = userProfileInfo.subject
+    const courseIdWithSection = `${userProfileInfo.course}-${userProfileInfo.semester}-${userProfileInfo.section}`
+    const calculateAttendance = async () => {
 
-    // console.log('SUBJECTS: ', Object.keys(userProfileInfo.subject))
-    // console.log('ATTENDENCE: ', Object.keys(userProfileInfo.subject["DS & Algo"].attendence))
-    // console.log('MONTH: ', Object.keys(userProfileInfo.subject["DS & Algo"].attendence['Jan']))
+        let count = 0;
+        let totalCount = 0;
+        const data = await getDoc(doc(db, 'attendance', courseIdWithSection))
+        Object.keys(data.data()).map((std) => {
+            Object.keys(data.data()[std][userProfileInfo.id]).forEach((month) => {
+                Object.keys(data.data()[std][userProfileInfo.id][month]).map((day) => {
 
-    Object.keys(subjects).forEach((key) => {
-        Object.keys(subjects[key].attendence).forEach((month) => {
-            totalLectures += Object.keys(subjects[key].attendence[month]).length
-            if (Object.keys(subjects[key].attendence[month]).length !== 0) {
-                Object.values(subjects[key].attendence[month]).map((value) => value && attended++)
+                    if (data.data()[std][userProfileInfo.id][month][day] !== null) {
+                        if (data.data()[std][userProfileInfo.id][month][day] === true) {
+                            count++;
+                        }
+                        totalCount++;
+                    }
+                })
+            })
+        })
+        setAttended(count)
+        setTotalLectures(totalCount)
+    }
+
+    const getStdLibraryData = async () => {
+        onSnapshot(doc(db, 'library', courseId), (doc) => {
+            if (doc.data()[userProfileInfo.id] === undefined) {
+                setLibraryData([])
+            } else {
+                setLibraryData(doc.data()[userProfileInfo.id].books)
             }
         })
-    })
+    }
 
+    const getStdfeesData = async () => {
+        onSnapshot(doc(db, 'Fees', courseId), (doc) => {
+            setFeesData(doc?.data()[userProfileInfo.id][userProfileInfo.semester])
+        })
+    }
 
+    useEffect(() => {
+        calculateAttendance()
+        getStdLibraryData()
+        getStdfeesData()
+    }, [])
 
-    console.log('TOTAL: ', totalLectures)
-    console.log('ATTENDED: ', attended)
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
+
+    const dateFormating = (dueDate) => {
+        let date = new Date(dueDate.split('.')[2], parseInt(dueDate.split('.')[1]) - 1, dueDate.split('.')[0])
+        // date.setDate(date.getDate() + 14)
+        const formattedDueDate = `${date.getDate()} ${months[date.getMonth()]}`
+        return formattedDueDate;
+    }
+
 
     const attendancePercent = (attended / totalLectures) * 100
-
-    const currTime = new Date().getTime()
-    console.log('Current Time', currTime)
+    // console.log("Attendance; ", attendancePercent)
 
     return (
         <div className='text'>
@@ -65,15 +103,115 @@ function Home() {
                         </div>
                     </Col>
                     <Col>
-                        <div className='dashboard-boxes'>
-                            Library
+                        <div className='dashboard-boxes d-flex flex-column align-items-center'>
+                            <h3>Library</h3>
+                            {
+                                stdLibraryData.length !== 0
+                                    ?
+                                    <div style={{
+                                        // border: '2px solid #fff',
+                                        // backgroundColor: '#e4e9f7'
+                                    }}
+                                        className='py-2 px-3 rounded dashboard-boxes-conntent d-flex justify-content-between align-items-center'
+                                    >
+                                        {
+                                            stdLibraryData.map((book, index) => (
+                                                <div key={index} style={{
+                                                    fontSize: '18px',
+                                                    'color': "#695cfe"
+                                                }}>
+                                                    <span className='me-2 text-center d-block'>
+                                                        {book.bookNo}
+                                                        {/* <i className="ms-1 fa-solid fa-arrow-right"></i> */}
+                                                    </span>
+
+                                                    <span className='badge bg-danger rounded'>{dateFormating(book.dueDate)}</span>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                    : (
+                                        <h5 style={{ fontSize: '18px' }}>
+                                            No Books Issued...
+                                        </h5>
+                                    )
+
+                            }
                         </div>
                     </Col>
                 </Row>
                 <Row>
                     <Col>
-                        <div className='dashboard-boxes'>
-                            Fees
+                        <div className='dashboard-boxes d-flex flex-column align-items-center'>
+                            <h3>Fees</h3>
+                            {
+                                Object.keys(feesData).length !== 0
+                                    ?
+                                    <div style={{
+                                        border: '2px solid #fff'
+                                    }}
+                                        className='py-2 px-3 rounded'
+                                    >
+                                        <div style={{
+                                            fontSize: '18px'
+                                        }}>
+                                            <span className='me-2'>
+                                                Academic
+                                                <i className="ms-2 fa-solid fa-arrow-right"></i>
+                                                {/* <i class="fa-solid fa-grip-lines-vertical"></i> */}
+                                            </span>
+
+                                            {
+                                                feesData.academic.status === 'Not-Paid'
+                                                    ?
+                                                    <span className='badge bg-danger rounded'>
+                                                        <i className="fa-solid fa-indian-rupee-sign me-1"></i>
+                                                        {feesData.academic.remaining}
+                                                    </span>
+                                                    : <>
+                                                        <span className='badge bg-success rounded me-2'>
+                                                            {/* <i className="fa-solid fa-indian-rupee-sign me-1"></i> */}
+                                                            {dateFormating(feesData.academic.finalPaidOn)}
+                                                            <i className="fa-solid fa-check-double ms-2"></i>
+                                                        </span>
+                                                    </>
+                                            }
+                                        </div>
+                                        {
+                                            userProfileInfo.transport &&
+                                            <div style={{
+                                                fontSize: '18px'
+                                            }}>
+                                                <span className='me-2'>
+                                                    Transport
+                                                    <i className="ms-3 fa-solid fa-arrow-right"></i>
+                                                </span>
+
+                                                {
+                                                    feesData.transport.status === 'Not-Paid'
+                                                        ?
+                                                        <span className='badge bg-danger rounded'>
+                                                            <i className="fa-solid fa-indian-rupee-sign me-1"></i>
+                                                            {feesData.transport.remaining}
+                                                        </span>
+                                                        : <>
+                                                            <span className='badge bg-danger rounded me-2'>
+                                                                {/* <i className="fa-solid fa-indian-rupee-sign me-1"></i> */}
+                                                                {dateFormating(feesData.transport.finalPaidOn)}
+                                                            </span>
+                                                            <i className="fa-solid fa-check-double text-success"></i>
+                                                        </>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                    : (
+                                        <h5 style={{ fontSize: '18px' }}>
+                                            No Data Available!!!
+                                        </h5>
+                                    )
+
+                            }
                         </div>
                     </Col>
                     <Col>
@@ -99,12 +237,12 @@ function Home() {
                     </Col>
                     <Col>
                         <div className='dashboard-boxes'>
-                            Other
+                            Result
                         </div>
                     </Col>
                 </Row>
             </Container>
-        </div>
+        </div >
     );
 }
 
