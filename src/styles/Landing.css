@@ -1,0 +1,47 @@
+.banner {
+  height: 250px;
+  /* left: 10px; */
+  /* overflow: hidden; */
+  /* background-color: ; */
+  background-image: url("/public/Images/ratm_banner.jpg");
+  background-position: center center;
+  object-fit: cover;
+  /* background-size: cover; */
+  background-repeat: no-repeat;
+  /* opacity: 0.7; */
+  position: relative;
+}
+
+/* .banner_fade {
+  position: absolute;
+  bottom: 10px;
+  height: 100px;
+  background: rgb(175, 165, 164);
+  background: linear-gradient(
+    6deg,
+    rgba(175, 165, 164, 1) 0%,
+    rgba(253, 255, 254, 1) 88%,
+    rgba(253, 255, 254, 1) 100%
+  );
+} */
+
+.icons {
+  font-size: 18px;
+  font-weight: bold;
+  color: #695cfe;
+}
+
+.features-text {
+  font-size: 18px;
+  /* font-weight: bold; */
+  margin-bottom: 0px !important;
+}
+
+.enquiry-form {
+  position: absolute;
+  height: 80px;
+  width: 80px;
+  cursor: pointer;
+  right: 25px;
+  bottom: 0px;
+}

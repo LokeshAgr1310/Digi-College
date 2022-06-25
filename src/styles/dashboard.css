@@ -12,3 +12,8 @@
   box-shadow: 5px -6px 10px;
   cursor: pointer;
 }
+
+.dashboard-boxes-conntent {
+  background-color: #e4e9f7;
+  width: 80%;
+}
