@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <style>
+    * {
+      margin: 0px;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .container {
+      display: flex;
+      /* place-items: center; */
+      /* place-items: center center; */
+      margin: 10px auto;
+      height: auto;
+      /* border: 1px solid black; */
+      /* height: calc(100vh - 40px); */
+      width: 768px;
+      margin-top: 20px;
+    }
+    .report {
+      /* display: flex;
+      flex-direction: column; */
+      padding: 20px;
+      height: 100%;
+      width: 100%;
+    }
+    .report--logo {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .report--logo img {
+      object-fit: cover;
+    }
+
+    .report--header {
+      margin-top: 30px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      /* padding: 10px; */
+      margin-bottom: 5px;
+    }
+    .col {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-width: 300px;
+    }
+
+    .report--header--entry {
+      color: rgb(128, 128, 128);
+      margin-right: 10px;
+    }
+    .report--header--entry--value {
+      font-weight: bold;
+    }
+
+    .report--table {
+      margin-top: 20px;
+    }
+
+    table {
+      width: 100%;
+    }
+
+    .report--footer {
+      margin-top: 70px;
+      margin-bottom: 20px;
+      /* width: 100%; */
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2px 20px;
+    }
+
+    .report--footer--item {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    hr {
+      width: 100px;
+      font-weight: bolder;
+      height: 0.1px;
+      color: black;
+      background-color: black;
+    }
+    .code {
+      font-weight: bold;
+      /* color: rgb(128, 128, 128); */
+    }
+    td {
+      text-align: center;
+      border-bottom: 1px solid black;
+      border-right: 1px solid black;
+    }
+
+    .table--header {
+      color: white;
+      background-color: rgb(128, 128, 128);
+    }
+  </style>
+  <body>
+    <div class="container">
+      <div class="report">
+        <div class="report--logo">
+          <img src="/public/Images/ratm_logo.jpg" alt="" />
+        </div>
+
+        <!-- Name, class, father's name, mother's name, issuedDate,   -->
+        <div class="report--header">
+          <div class="row">
+            <div class="col">
+              <h4 class="report--header--entry">Regn:</h4>
+              <h4 class="report--header--entry--value">BC21004</h4>
+              <!-- <h4>Lokesh Agrawal</h4> -->
+            </div>
+            <div class="col">
+              <h4 class="report--header--entry">DOB:</h4>
+              <h4 class="report--header--entry--value">13.10.2003</h4>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <h4 class="report--header--entry">Name:</h4>
+              <h4 class="report--header--entry--value">Lokesh Agrawal</h4>
+              <!-- <h4>Lokesh Agrawal</h4> -->
+            </div>
+            <div class="col">
+              <h4 class="report--header--entry">Class:</h4>
+              <h4 class="report--header--entry--value">BCA-1</h4>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col">
+              <h4 class="report--header--entry">Father's Name:</h4>
+              <h4 class="report--header--entry--value">Mr. Ajay Agrawal</h4>
+              <!-- <h4>Lokesh Agrawal</h4> -->
+            </div>
+            <div class="col">
+              <h4 class="report--header--entry">Session:</h4>
+              <h4 class="report--header--entry--value">2022-23</h4>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <h4 class="report--header--entry">Mother's name:</h4>
+              <h4 class="report--header--entry--value">Mrs. Hemlata Agrawal</h4>
+              <!-- <h4>Lokesh Agrawal</h4> -->
+            </div>
+            <div class="col">
+              <h4 class="report--header--entry">Issued Date:</h4>
+              <h4 class="report--header--entry--value">28.10.2022</h4>
+            </div>
+          </div>
+        </div>
+
+        <div class="report--table">
+          <table>
+            <thead>
+              <tr>
+                <th colspan="2" class="table--header">Subject</th>
+                <th rowspan="2" class="table--header">Sessional (MM - 50)</th>
+                <th rowspan="2" class="table--header">PUT (MM - 50)</th>
+              </tr>
+              <tr>
+                <th class="table--header">Code</th>
+                <th class="table--header">Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="code">BC-101</td>
+                <td>Computer Fundamentals</td>
+                <td>45</td>
+                <td>48</td>
+              </tr>
+              <tr>
+                <td class="code">BC-101</td>
+                <td>Computer Fundamentals</td>
+                <td>45</td>
+                <td>48</td>
+              </tr>
+              <tr>
+                <td class="code">BC-101</td>
+                <td>Computer Fundamentals</td>
+                <td>45</td>
+                <td>48</td>
+              </tr>
+              <tr>
+                <td class="code">BC-101</td>
+                <td>Computer Fundamentals</td>
+                <td>45</td>
+                <td>48</td>
+              </tr>
+              <tr>
+                <td class="code">BC-101</td>
+                <td>Computer Fundamentals</td>
+                <td>45</td>
+                <td>48</td>
+              </tr>
+              <tr>
+                <td colspan="2" class="code">Total</td>
+                <td>220/250</td>
+                <td>230/250</td>
+              </tr>
+              <tr>
+                <td colspan="2" class="code">Percentage</td>
+                <td>94.2%</td>
+                <td>96.6%</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- <div class="report--results">
+            <p>Total: </p>
+        </div> -->
+        </div>
+
+        <div class="report--footer">
+          <div class="report--footer--item">
+            <hr />
+            (HOD Sign)
+          </div>
+          <div class="report--footer--item">
+            <hr />
+            (Class Advisor Sign.)
+          </div>
+          <div class="report--footer--item">
+            <hr />
+            (Parent Sign.)
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
