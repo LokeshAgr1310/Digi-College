@@ -110,7 +110,7 @@ function OfficeIndividualRecord() {
                             <ListGroup.Item>
                                 <Row>
                                     <Col>
-                                        <h4 style={{ fontSize: '15px' }} className='fw-bolder text-secondary'>Semester</h4>
+                                        <h4 style={{ fontSize: '15px' }} className='fw-bolder text-secondary'>Section</h4>
                                     </Col>
                                     <Col className='d-flex align-items-center'>
                                         <h4 className='fw-bolder' style={{ fontSize: '15px' }}>

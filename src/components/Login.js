@@ -54,6 +54,8 @@ function Login() {
 
                 }))
 
+                console.log("info: ", userInfoData)
+
                 // checking if login credentials is correct or not
                 if (userInfoData.length === 0) {
                     toast.error('Incorrect Login Credentials', toastPropertyProps)

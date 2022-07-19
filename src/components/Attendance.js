@@ -64,7 +64,7 @@ function Attendance() {
           <span className='text-danger'>*</span> Click on refresh button to get the latest Data
         </p> */}
         <div className='d-flex align-items-center my-4 flex-column' style={{
-          backgroundColor: '#fff',
+          // backgroundColor: '#fff',
           fontSize: '18px'
           // height: '100%',
         }}>

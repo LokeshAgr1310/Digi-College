@@ -37,6 +37,10 @@ import StudentFees from './components/StudentFees';
 import Office from './components/Office';
 import OfficeRecords from './components/OfficeRecords';
 import OfficeIndividualRecord from './components/OfficeIndividualRecord';
+import StudentNoticeCorner from './components/StudentNoticeCorner';
+import TeacherNoticeCorner from './components/TeacherNoticeCorner';
+import TeacherSideResults from './components/TeacherSideResults';
+import TeacherSideUploadResults from './components/TeacherSideUploadResults';
 
 function App() {
 
@@ -116,6 +120,11 @@ function App() {
               <Route path='/office-records/:id' element={<OfficeIndividualRecord />} />
 
 
+              {/* Student Side Notice Corner */}
+              <Route path="/notice-corner" element={<StudentNoticeCorner />} />
+
+              <Route path="/teacher/notice-corner" element={<TeacherNoticeCorner />} />
+
               {/* Student Profile */}
               <Route path='/profile' element={<Profile />} />
 
@@ -124,6 +133,9 @@ function App() {
 
               {/* Student Results */}
               <Route path='/results' element={<Results />} />
+
+              <Route path='/teacher-results' element={<TeacherSideResults />} />
+              <Route path='/teacher-results/upload' element={<TeacherSideUploadResults />} />
 
               {/* Student Side Syllabus */}
               <Route path='/syllabus' element={<Syllabus />} />

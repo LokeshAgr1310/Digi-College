@@ -7,15 +7,6 @@ import { db } from '../firebase-config'
 import Loader from './Loading'
 import { payStdFees } from '../actions/officeActions'
 import { useDispatch } from 'react-redux';
-import { htmlContent } from '../documents/paymentInvoice'
-// import { create } from 'html-pdf'
-// import Page from '../documents/paymentInvoice.html'
-// import * as fs from 'fs'
-
-// const fs = require('fs')
-// const pdf = require('html-pdf')
-// const html = fs.readFileSync('../documents/paymentInvoice.html', 'utf-8')
-import { jsPDF } from 'jspdf'
 
 // If fees is already submitted Condition...
 
@@ -110,11 +101,14 @@ function Office() {
 
                     // do something
 
-                    dispatch(payStdFees(studentId, studentCourseId, feeHead, feeAmount, feeMode))
+                    dispatch(payStdFees(studentId, studentCourseId, feeHead, feeAmount, feeMode, stdFeesData.name, stdFeesData.regn))
                     toast.success('Fees Submitted Succesfully!!', toastPropertyProps)
                     setShowModal(false)
+                    setStdFeesDataShow(false)
+                    setStdFeesData({})
+                    setRegn('')
 
-                    setInvoiceModalShow(true)
+                    // setInvoiceModalShow(true)
                 }
             } catch (error) {
                 toast.error('Something Went Wrong!!', toastPropertyProps)
@@ -202,53 +196,6 @@ function Office() {
         );
     }
 
-    function InvoicePrintModal(props) {
-
-        return (
-            <Modal
-                {...props}
-                size="lg"
-                aria-labelledby="contained-modal-title-vcenter"
-                centered
-            >
-                <Modal.Header closeButton
-                >
-                    <Modal.Title id="contained-modal-title-vcenter">
-                        Paying Fees - {stdFeesData.name} ({stdFeesData.regn})
-                    </Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Button variant="success">
-                        Download
-                    </Button>
-                    <Button>
-                        Print
-                    </Button>
-                </Modal.Body>
-            </Modal>
-        )
-    }
-
-    const generatePdf = () => {
-
-        // create(htmlContent).toFile(`${studentId}.pdf`, (err, res) => {
-        //     if (err)
-        //         return toast.error('Pdf Invoice is not created!!', toastPropertyProps)
-        //     return console.log(res)
-        // })
-        const doc = new jsPDF()
-        doc.html(htmlContent({ "trans_id": "e828292djsaui32" }), {
-            callback: function (pdf) {
-                // pdf.save("generatedPdf.pdf")
-                const data = pdf.output("blob")
-
-                console.log('pdf', data)
-                // pdf.
-            }
-        })
-
-    }
-
     return (
         <div className='text'>
             <div>
@@ -289,8 +236,8 @@ function Office() {
                                             variant='outline-danger'
                                             onClick={() => {
                                                 setStdFeesDataShow(false)
-                                                // setStdFeesData({})
-                                                // setRegn('')
+                                                setStdFeesData({})
+                                                setRegn('')
                                             }}
                                         >
                                             <i className="fa-solid fa-xmark"></i>
@@ -417,9 +364,6 @@ function Office() {
                     }
                 </div>
             </div>
-
-            <Button onClick={() => generatePdf()}>Generate Pdf</Button>
-
             <ToastContainer style={{
                 fontSize: '15px'
             }} />
@@ -429,13 +373,6 @@ function Office() {
                 onHide={() => {
                     setShowModal(false)
                     // setSelectedIndividualDate(new Date().getDate())
-                }}
-            />
-
-            <InvoicePrintModal
-                show={invoiceModalShow}
-                onHide={() => {
-                    setInvoiceModalShow(false)
                 }}
             />
         </div>

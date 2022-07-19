@@ -25,11 +25,7 @@ function Navigation() {
 
                     </li>
                     <li className='nav-links'>
-                        <Link to="/results" style={
-                            userInfo?.role === 'teacher'
-                                ? { pointerEvents: "none" }
-                                : null
-                        }>
+                        <Link to={userInfo?.role === 'student' ? '/results' : '/teacher-results'}>
                             <span className="text nav-text">Results</span>
                         </Link>
                     </li>
@@ -125,11 +121,6 @@ function Navigation() {
                             <span className="text nav-text">Courses</span>
                         </Link>
                     </li>
-                    <li className='nav-links'>
-                        <Link to="" style={{ pointerEvents: "none" }}>
-                            <span className="text nav-text">Notice Corner</span>
-                        </Link>
-                    </li>
                 </ul>
             </Popover.Body>
         </Popover>
@@ -150,7 +141,7 @@ function Navigation() {
                     <div className="image-text">
                         <Link to={`${userInfo === null ? '/' : userInfo?.role === 'office' ? '/office/fees' : userInfo?.role === 'librarian' ? '/librarian' : userInfo?.role === 'student' ? '/student-dashboard' : '/teacher-dashboard'}`}>
                             <span className="image" style={{ cursor: 'pointer' }}>
-                                <img src="Images/logo.png" alt="No-img" />
+                                <img src="/api/logo.png" alt="No-img" />
                             </span>
                         </Link>
 
@@ -165,10 +156,20 @@ function Navigation() {
                 <div className="menu-bar">
                     <div className="menu">
 
-                        <li className="search-box">
+                        {/* <li className="search-box">
                             <i className='bx bx-search icon'></i>
                             <input type="text" placeholder="Search..." />
-                        </li>
+                        </li> */}
+                        {
+                            userInfo !== null &&
+                            <li className='nav-links'>
+                                <Link to={`${userInfo?.role === "student" ? "/notice-corner" : "/teacher/notice-corner"}`}>
+                                    <i className="fa-regular fa-bell icon"></i>
+                                    <span className="text nav-text">Notice Corner</span>
+                                </Link>
+                            </li>
+                        }
+
 
                         {
                             userInfo === null
@@ -259,7 +260,7 @@ function Navigation() {
 
                                             <li className="nav-links">
                                                 <Link to="" style={{ pointerEvents: "none" }}>
-                                                    <i className="fa-regular fa-bell icon"></i>
+                                                    <i className="fa-solid fa-sliders icon"></i>
                                                     <span className="text nav-text">Other</span>
                                                 </Link>
                                                 <span className='dropdown-arrow'>
@@ -323,7 +324,7 @@ function Navigation() {
 
                                                 <li className="nav-links">
                                                     <Link to="" style={{ pointerEvents: "none" }}>
-                                                        <i className="fa-regular fa-bell icon"></i>
+                                                        <i className="fa-solid fa-sliders icon"></i>
                                                         <span className="text nav-text">Other</span>
                                                     </Link>
                                                     <span className='dropdown-arrow'>

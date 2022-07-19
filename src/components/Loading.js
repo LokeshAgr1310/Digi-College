@@ -1,7 +1,7 @@
 import React from 'react';
 import { Spinner } from 'react-bootstrap'
 
-function Loader({ height, width, applyClass }) {
+function Loader({ height, width, display, applyClass }) {
     return (
         <Spinner
             animation='border'
@@ -10,7 +10,7 @@ function Loader({ height, width, applyClass }) {
                 height: `${height ? height : '100px'}`,
                 width: `${width ? width : '100px'}`,
                 margin: 'auto',
-                display: 'block',
+                display: `${display ? display : "block"}`,
                 color: 'black'
             }}
             className={applyClass}

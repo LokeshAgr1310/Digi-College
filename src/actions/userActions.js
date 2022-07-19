@@ -109,8 +109,10 @@ export const login = (id, isTeacher) => async (dispatch) => {
             }
 
             // creating a query for teacherProfile
+            // console.log("Id:", id)
             q = query(teacherProfileCollectionRef, where('t_id', "==", id))
             const profileData = await getDocs(q)
+            // console.log("data:", profileData)
 
             // create the profileInfo object
             profileInfo = profileData.docs.map((doc) => ({
@@ -151,6 +153,7 @@ export const login = (id, isTeacher) => async (dispatch) => {
 
 
     } catch (error) {
+        console.log("err", error)
         dispatch({
             type: USER_LOGIN_FAIL,
             payload: error

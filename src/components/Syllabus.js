@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { db } from '../firebase-config'
 import { getDoc, doc } from 'firebase/firestore'
 import Loader from './Loading';
+import { Link } from 'react-router-dom';
 // import '../styles/attendance.css'
 
 function Syllabus() {
@@ -45,7 +46,7 @@ function Syllabus() {
 
                     <h2 >Your Syllabus</h2>
                     <div className='d-flex align-items-center my-4 flex-column' style={{
-                        backgroundColor: '#fff',
+                        // backgroundColor: '#fff',
                         fontSize: '18px'
                         // height: '100%',
                     }}>
@@ -55,15 +56,15 @@ function Syllabus() {
                         }}>
                             {subjects.map((sub, index) => (
                                 <li className="nav-item" key={index}>
-                                    <a
+                                    <Link
                                         className={`nav-link ${(activeTab === sub) ? "active" : ""}`}
-                                        href="#"
+                                        to="#"
                                         onClick={() => setActiveTab(sub)}
                                     >
-                                        <span style={{ fontSize: '12px' }}>
+                                        <span>
                                             {sub}
                                         </span>
-                                    </a>
+                                    </Link>
                                 </li>
 
                             ))}
@@ -78,7 +79,7 @@ function Syllabus() {
 
 
                                 <Table striped bordered hover variant='secondary' size="sm" style={{
-                                    fontSize: '18px',
+                                    fontSize: '15px',
                                     marginTop: '5px',
 
                                 }}>
